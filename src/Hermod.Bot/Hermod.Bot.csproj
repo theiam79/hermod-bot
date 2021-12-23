@@ -8,6 +8,23 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="discord.addons.hosting" Version="5.0.0" />
+    <PackageReference Include="discord.net" Version="3.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="6.0.0" />
+    <PackageReference Include="serilog" Version="2.10.0" />
+    <PackageReference Include="serilog.enrichers.environment" Version="2.2.0" />
+    <PackageReference Include="serilog.enrichers.sensitive" Version="1.0.0" />
+    <PackageReference Include="serilog.exceptions" Version="8.0.0" />
+    <PackageReference Include="serilog.exceptions.entityframeworkcore" Version="8.0.0" />
+    <PackageReference Include="serilog.extensions.hosting" Version="4.2.0" />
+    <PackageReference Include="serilog.settings.configuration" Version="3.3.0" />
+    <PackageReference Include="serilog.sinks.console" Version="4.0.1" />
+    <PackageReference Include="serilog.sinks.seq" Version="5.1.0" />
+    <PackageReference Include="SerilogTimings" Version="2.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hermod.Core\Hermod.Core.csproj" />
   </ItemGroup>
 </Project>
