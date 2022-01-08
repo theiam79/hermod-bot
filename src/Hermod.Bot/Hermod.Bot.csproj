@@ -25,6 +25,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Hermod.BGstats\Hermod.BGstats.csproj" />
     <ProjectReference Include="..\Hermod.Core\Hermod.Core.csproj" />
   </ItemGroup>
 </Project>

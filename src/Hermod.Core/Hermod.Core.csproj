@@ -7,10 +7,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Bgg.Sdk" Version="0.1.2" />
     <PackageReference Include="Discord.Net" Version="3.0.0" />
     <PackageReference Include="FluentValidation" Version="10.3.6" />
     <PackageReference Include="mediatr" Version="9.0.0" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hermod.BGstats\Hermod.BGstats.csproj" />
+    <ProjectReference Include="..\Hermod.Data\Hermod.Data.csproj" />
   </ItemGroup>
 
 </Project>

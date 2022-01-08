@@ -10,7 +10,7 @@ using Discord;
 using Discord.Commands;
 using Microsoft.Extensions.Logging;
 
-namespace Hermod.Bot.Features.Info
+namespace Hermod.Bot.Modules.Info
 {
     public class Module : ModuleBase<SocketCommandContext>
     {

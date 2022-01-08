@@ -14,7 +14,8 @@ namespace Hermod.Core.Features.Collection
         public record Command : IRequest
         {
             public ulong DiscordId { get; init; }
-            public int BggId { get; init; }
+            public ulong GuildId { get; init; }
+            public string BggUsername { get; init; } = "";
         }
 
         public class Handler : IRequestHandler<Command>
@@ -38,7 +39,9 @@ namespace Hermod.Core.Features.Collection
         {
             public Validator()
             {
-
+                RuleFor(command => command.DiscordId).NotEmpty();
+                RuleFor(command => command.GuildId).NotEmpty();
+                RuleFor(command => command.BggUsername).NotEmpty();
             }
         }
     }

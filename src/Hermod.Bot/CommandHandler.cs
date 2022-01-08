@@ -14,6 +14,23 @@ using Microsoft.Extensions.Logging;
 
 namespace Hermod.Bot
 {
+    internal class GuildHandler : DiscordClientService
+    {
+        public GuildHandler(DiscordSocketClient client, ILogger<GuildHandler> logger) : base(client, logger)
+        {
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            Client.JoinedGuild += HandleJoinedGuild;
+        }
+
+        private async Task HandleJoinedGuild(SocketGuild arg)
+        {
+
+        }
+    }
+
     internal class CommandHandler : DiscordClientService
     {
         private readonly IServiceProvider _serviceProvider;
@@ -22,7 +39,7 @@ namespace Hermod.Bot
         
         public CommandHandler(
             DiscordSocketClient client,
-            ILogger<DiscordClientService> logger,
+            ILogger<CommandHandler> logger,
             IServiceProvider provider,
             CommandService commandService,
             IOptions<BotOptions> botOptions
@@ -39,7 +56,8 @@ namespace Hermod.Bot
             _commandService.CommandExecuted += CommandExecutedAsync;
 
             Logger.LogInformation("Searching for modules to load");
-            await _commandService.AddModuleAsync<Features.Info.Module>(_serviceProvider);
+            await _commandService.AddModuleAsync<Modules.Info.Module>(_serviceProvider);
+            await _commandService.AddModuleAsync<Modules.Share.Module>(_serviceProvider);
         }
 
         private async Task HandleMessage(SocketMessage incomingMessage)
@@ -55,7 +73,7 @@ namespace Hermod.Bot
 
             if (playFile != default)
             {
-                await _commandService.ExecuteAsync(context, "playfile", _serviceProvider);
+                await _commandService.ExecuteAsync(context, "share", _serviceProvider);
                 return;
             }
 
