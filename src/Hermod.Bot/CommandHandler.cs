@@ -14,22 +14,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Hermod.Bot
 {
-    internal class GuildHandler : DiscordClientService
-    {
-        public GuildHandler(DiscordSocketClient client, ILogger<GuildHandler> logger) : base(client, logger)
-        {
-        }
-
-        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-        {
-            Client.JoinedGuild += HandleJoinedGuild;
-        }
-
-        private async Task HandleJoinedGuild(SocketGuild arg)
-        {
-
-        }
-    }
 
     internal class CommandHandler : DiscordClientService
     {
