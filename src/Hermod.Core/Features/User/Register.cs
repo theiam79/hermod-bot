@@ -3,7 +3,6 @@ using Discord;
 using Discord.WebSocket;
 using FluentValidation;
 using Hermod.Data.Context;
-using Hermod.Data.Models;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -20,6 +19,15 @@ namespace Hermod.Core.Features.User
         {
             public ulong UserId { get; init; }
             public string BggUsername { get; init; } = "";
+            public ulong GuildId { get; init; }
+            public SubscibeOption SubscibeOption { get; init; }
+        }
+
+        public enum SubscibeOption
+        {
+            None = 0,
+            All = 1,
+            ThisGuild = 2
         }
 
         public class Handler : IRequestHandler<Command>
@@ -41,7 +49,6 @@ namespace Hermod.Core.Features.User
                 var userAlreadyRegistered = await _hermodContext
                     .Users
                     .Where(u => u.DiscordId == request.UserId && u.NormalizedBggUsername == normalizedBggUsername)
-                    .AsNoTracking()
                     .AnyAsync();
 
                 if (userAlreadyRegistered)
@@ -57,12 +64,11 @@ namespace Hermod.Core.Features.User
 
                 var guildsToRegister = _discordClient
                     .Guilds
-                    .Select(g => g.Users.FirstOrDefault(u => u.Id == request.UserId))
-                    .Where(gu => gu != default)
+                    .SelectMany(g => g.Users.Where(u => u.Id == request.UserId).Take(1))
                     .Select(gu => new Data.Models.UserGuild
                     {
-                        GuildId = gu!.Guild.Id,
-                        UserNickname = gu!.Nickname,
+                        GuildId = gu.Guild.Id,
+                        UserNickname = gu.Nickname,
                         SubscribeToPlays = true,
                     })
                     .ToList();
@@ -89,6 +95,9 @@ namespace Hermod.Core.Features.User
             {
                 RuleFor(command => command.UserId).NotEmpty();
                 RuleFor(command => command.BggUsername).NotEmpty();
+                RuleFor(command => command.GuildId).NotEmpty()
+                    .When(command => command.SubscibeOption == SubscibeOption.ThisGuild)
+                    .WithMessage("This guild option requires a guildId to be included in the request");
             }
         }
     }
