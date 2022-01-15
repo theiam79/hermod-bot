@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.Interactions;
+using Discord.WebSocket;
 using MediatR;
 using System;
 using System.Collections.Generic;
@@ -20,18 +21,21 @@ namespace Hermod.Bot.Modules.Guild
         }
 
         [SlashCommand("postchannel", "Set the post channel for sharing plays")]
+        [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task Channel(ITextChannel channel)
         {
             await UpdateSettingAsync(x => x.PostChannel = channel.Id);
         }
 
-        [SlashCommand("role", "Set a role that allows management of the bot settings")]
-        public async Task SetRoleAsync(IRole role)
-        {
-            await UpdateSettingAsync(x => x.ManagementRole = role.Id);
-        }
+        //[SlashCommand("role", "Set a role that allows management of the bot settings")]
+        //[RequireUserPermission(GuildPermission.ManageGuild)]
+        //public async Task SetRoleAsync(IRole role)
+        //{
+        //    await UpdateSettingAsync(x => x.ManagementRole = role.Id);
+        //}
 
         [SlashCommand("sharing", "Enable or Disable sharing for the guild")]
+        [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task SetSharingAsync(bool sharing)
         {
             await UpdateSettingAsync(x => x.Sharing = sharing);
