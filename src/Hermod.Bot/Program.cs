@@ -8,14 +8,22 @@ using Serilog.Exceptions;
 using Discord.WebSocket;
 using Discord;
 using Hermod.Bot;
+using Hermod.Core.Extensions;
+using Hermod.Data.Context;
+using Microsoft.EntityFrameworkCore;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>
     {
         services.AddHostedService<CommandHandler>();
+        services.AddHostedService<InteractionHandler>();
+        services.AddHostedService<GuildHandler>();
         services
             .AddOptions<BotOptions>();
         //services.AddHostedService<Worker>();
+        services.AddHermod();
+        services.AddDbContext<HermodContext>(o => o.UseInMemoryDatabase("temp-testing"));
+        //services.AddDbContext<HermodContext>(o => o.UseSqlite(""));
     })
     .UseSerilog((context, services, config) =>
     {

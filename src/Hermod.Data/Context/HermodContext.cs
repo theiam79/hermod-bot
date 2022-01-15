@@ -14,7 +14,7 @@ namespace Hermod.Data.Context
 
         public DbSet<User> Users => Set<User>();
         public DbSet<Guild> Guilds => Set<Guild>();
-        public DbSet<UserGuild> UserGuilds => Set<UserGuild>();
+        //public DbSet<UserGuild> UserGuilds => Set<UserGuild>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -26,13 +26,15 @@ namespace Hermod.Data.Context
                     j => j
                         .HasOne(ug => ug.Guild)
                         .WithMany(g => g.UserGuilds)
-                        .HasForeignKey(ug => ug.GuildId),
+                        .HasForeignKey(ug => ug.GuildId)
+                        .HasPrincipalKey(g => g.GuildId),
                     j => j
                         .HasOne(ug => ug.User)
                         .WithMany(u => u.UserGuilds)
-                        .HasForeignKey(ug => ug.UserId),
+                        .HasForeignKey(ug => ug.UserId)
+                        .HasPrincipalKey(u => u.DiscordId),
                     j => j
-                        .HasKey(ug => new { ug.UserId, ug.Guild })
+                        .HasKey(ug => new { ug.UserId, ug.GuildId })
                     );
         }
         
