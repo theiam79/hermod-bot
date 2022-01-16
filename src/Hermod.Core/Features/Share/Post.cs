@@ -1,5 +1,6 @@
 ﻿using Discord;
 using Discord.WebSocket;
+using FluentResults;
 using FluentValidation;
 using Hermod.BGstats;
 using Hermod.Data.Context;
@@ -17,47 +18,58 @@ namespace Hermod.Core.Features.Share
 {
     public class Post
     {
-        public class Command : IRequest
+        public class Command : IRequest<Result>
         {
-            public ulong Guild { get; init; }
+            public ulong Sender { get; init; }
+            public ulong? Guild { get; init; }
             public ulong CommandChannel { get; init; }
             public Attachment? PlayFile { get; init; }
             public string? ImageUrl { get; init; }
         }
 
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, Result>
         {
             private readonly HermodContext _hermodContext;
             private readonly HttpClient _httpClient;
             private readonly ILogger<Handler> _logger;
+            private readonly DiscordSocketClient _discordSocketClient;
 
-            public Handler(HermodContext hermodContext, HttpClient httpClient, ILogger<Handler> logger)
+            public Handler(HermodContext hermodContext, HttpClient httpClient, ILogger<Handler> logger, DiscordSocketClient discordSocketClient)
             {
                 _hermodContext = hermodContext;
                 _httpClient = httpClient;
                 _logger = logger;
+                _discordSocketClient = discordSocketClient;
             }
 
-            public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
             {
-                var channelId = await _hermodContext
-                    .Guilds
-                    .Where(g => g.GuildId == request.Guild)
-                    .Select(g => g.PostChannelId)
-                    .FirstOrDefaultAsync();
+                List<Target> targets;
 
-                if (channelId == default)
+                if (request.Guild == null)
                 {
-                    _logger.LogDebug("Post channel not set for {Guild}, using command channel", request.Guild);
-                    channelId = request.CommandChannel;
+                    targets = await _hermodContext
+                        .Guilds
+                        .Where(g => request.Guild == default || g.GuildId == request.Guild!.Value)
+                        .Where(g => g.AllowSharing)
+                        .Where(g => g.PostChannelId != default)
+                        .Where(g => g.Users.Any(u => u.DiscordId == request.Sender))
+                        .Select(g => new Target(g.GuildId, g.PostChannelId!.Value))
+                        .Distinct()
+                        .ToListAsync(cancellationToken);
+                }
+                else
+                {
+                    targets = await _hermodContext
+                        .Guilds
+                        .Where(g => g.GuildId == request.Guild.Value)
+                        .Select(g => new Target(g.GuildId, g.PostChannelId ?? request.CommandChannel))
+                        .ToListAsync();
                 }
 
-                var client = new DiscordSocketClient();
-
-                if (client.GetGuild(request.Guild)?.GetTextChannel(channelId) is not SocketTextChannel channel)
+                if (!targets.Any())
                 {
-                    _logger.LogDebug("Failed to get {Channel} from {Guild}", channelId, request.Guild);
-                    return default;
+                    return Result.Fail("No target guild(s) found");
                 }
 
                 var jsonOptions = new JsonSerializerOptions
@@ -73,7 +85,7 @@ namespace Hermod.Core.Features.Share
                 if (await JsonSerializer.DeserializeAsync<PlayFile>(stream, jsonOptions) is not PlayFile playFile)
                 {
                     _logger.LogDebug("Failed to deserialize {File} from {FileUrl}", request.PlayFile.Filename, request.PlayFile.Url);
-                    return default;
+                    return Result.Fail("Unable to parse the supplied .bgsplay file");
                 }
 
                 var play = playFile.MapToPlay();
@@ -83,10 +95,38 @@ namespace Hermod.Core.Features.Share
                 {
                     embedBuilder.WithImageUrl(request.ImageUrl);
                 }
+                var embed = embedBuilder.Build();
 
-                await channel.SendMessageAsync(embed: embedBuilder.Build());
+                var results = await Task.WhenAll(targets.Select(pt => PostPlay(pt.Guild, pt.Channel, embed)));
+                return Result.Merge(results);
+            }
 
-                return default;
+            private class Target
+            {
+                public Target(ulong guild, ulong channel)
+                {
+                    Guild = guild;
+                    Channel = channel;
+                }
+
+                public ulong Guild { get; }
+                public ulong Channel { get; }
+            }
+
+            private async Task<Result> PostPlay(ulong guildId, ulong channelId, Embed embed)
+            {
+                if (_discordSocketClient.GetGuild(guildId) is not SocketGuild guild)
+                {
+                    return Result.Fail($"Couldn't retrieve guild with ID {guildId}");
+                }
+
+                if (guild.GetTextChannel(channelId) is not SocketTextChannel channel)
+                {
+                    return Result.Fail($"Could not find the configured post channel for guild: {guild.Name}");
+                }
+
+                await channel.SendMessageAsync(embed: embed);
+                return Result.Ok().WithSuccess($"Successfully posted to {guild.Name}");
             }
 
             private EmbedBuilder FormatPlay(Play play)

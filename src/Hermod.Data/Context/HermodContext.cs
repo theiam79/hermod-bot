@@ -14,7 +14,7 @@ namespace Hermod.Data.Context
 
         public DbSet<User> Users => Set<User>();
         public DbSet<Guild> Guilds => Set<Guild>();
-        //public DbSet<UserGuild> UserGuilds => Set<UserGuild>();
+        public DbSet<UserGuild> UserGuilds => Set<UserGuild>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

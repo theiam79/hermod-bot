@@ -37,6 +37,7 @@ namespace Hermod.Bot
             _interactionService.SlashCommandExecuted += SlashCommandExecuted;
             await Client.WaitForReadyAsync(stoppingToken);
 
+            //await _interactionService.RegisterCommandsToGuildAsync(932103115761647626);
             await _interactionService.RegisterCommandsToGuildAsync(196095053154746369);
         }
         private async Task HandleInteraction(SocketInteraction arg)
@@ -45,7 +46,7 @@ namespace Hermod.Bot
             {
                 // Create an execution context that matches the generic type parameter of your InteractionModuleBase<T> modules
                 var ctx = new SocketInteractionContext(Client, arg);
-                await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider);
+                await _interactionService.ExecuteCommandAsync(ctx, _serviceProvider.CreateScope().ServiceProvider);
             }
             catch (Exception ex)
             {

@@ -57,14 +57,14 @@ namespace Hermod.Bot
 
             if (playFile != default)
             {
-                await _commandService.ExecuteAsync(context, "share", _serviceProvider);
+                await _commandService.ExecuteAsync(context, "share", _serviceProvider.CreateScope().ServiceProvider);
                 return;
             }
 
             int argPos = 0;
             if (!message.HasStringPrefix(_botOptions.Prefix, ref argPos) && !message.HasMentionPrefix(Client.CurrentUser, ref argPos)) return;
 
-            await _commandService.ExecuteAsync(context, argPos, _serviceProvider);
+            await _commandService.ExecuteAsync(context, argPos, _serviceProvider.CreateScope().ServiceProvider);
         }
 
         private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)

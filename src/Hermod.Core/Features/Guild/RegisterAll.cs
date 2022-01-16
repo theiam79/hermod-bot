@@ -42,6 +42,8 @@ namespace Hermod.Core.Features.Guild
                     .Select(g => new Data.Models.Guild
                     {
                         GuildId = g,
+                        PostChannelId = GetPostChannel(g),
+                        AllowSharing = true
                     });
 
                 if (guildsToAdd.Any())
@@ -52,7 +54,14 @@ namespace Hermod.Core.Features.Guild
 
                 return default;
             }
+            private ulong? GetPostChannel(ulong guild) => guild switch
+            {
+                196095053154746369 => 919038735188897792,
+                932103115761647626 => 932103115761647629,
+                _ => null
+            };
         }
+
 
         public class Validator : AbstractValidator<Command>
         {

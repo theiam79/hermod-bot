@@ -19,6 +19,7 @@ namespace Hermod.Core.Extensions
             services.AddAutoMapper(typeof(ServiceCollectionExtensions).Assembly);
             services.AddMediatR(typeof(ServiceCollectionExtensions).Assembly);
             services.AddBgg();
+            services.AddHttpClient<Features.Share.Post.Handler>();
             return services;
         }
     }
