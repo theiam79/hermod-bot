@@ -1,4 +1,5 @@
-﻿using FluentValidation;
+﻿using Discord.Interactions;
+using FluentValidation;
 using Hermod.Data.Context;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -20,10 +21,12 @@ namespace Hermod.Core.Features.Guild
         public class Handler : IRequestHandler<Command>
         {
             private readonly HermodContext _hermodContext;
+            private readonly InteractionService _interactionService;
 
-            public Handler(HermodContext hermodContext)
+            public Handler(HermodContext hermodContext, InteractionService interactionService)
             {
                 _hermodContext = hermodContext;
+                _interactionService = interactionService;
             }
 
             public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
@@ -40,6 +43,7 @@ namespace Hermod.Core.Features.Guild
 
                 _hermodContext.Guilds.Add(guild);
                 await _hermodContext.SaveChangesAsync(CancellationToken.None);
+                await _interactionService.RegisterCommandsToGuildAsync(request.GuildId);
                 return default;
             }
         }

@@ -72,9 +72,9 @@ namespace Hermod.Core.Features.Share
                     return Result.Ok().WithSuccess("Found no registered players to notify");
                 }
 
-                var sourceStream = await _httpClient.GetStreamAsync(request.Attachment!.Url);
+                var sourceStream = await _httpClient.GetStreamAsync(request.Attachment!.Url, cancellationToken);
                 var memoryStream = new MemoryStream();
-                await sourceStream.CopyToAsync(memoryStream);
+                await sourceStream.CopyToAsync(memoryStream, cancellationToken);
 
                 var client = new DiscordSocketClient();
                 List<Result> results = new(recipients.Count);

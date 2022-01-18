@@ -17,19 +17,19 @@ namespace Hermod.Bot
 
     internal class CommandHandler : DiscordClientService
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly CommandService _commandService;
         private readonly BotOptions _botOptions;
         
         public CommandHandler(
             DiscordSocketClient client,
             ILogger<CommandHandler> logger,
-            IServiceProvider provider,
+            IServiceScopeFactory scopeFactory,
             CommandService commandService,
             IOptions<BotOptions> botOptions
             ) : base(client, logger)
         {
-            _serviceProvider = provider;
+            _scopeFactory = scopeFactory;
             _commandService = commandService;
             _botOptions = botOptions.Value;
         }
@@ -40,8 +40,8 @@ namespace Hermod.Bot
             _commandService.CommandExecuted += CommandExecutedAsync;
 
             Logger.LogInformation("Searching for modules to load");
-            await _commandService.AddModuleAsync<Modules.Info.Module>(_serviceProvider);
-            await _commandService.AddModuleAsync<Modules.Share.Module>(_serviceProvider);
+            await _commandService.AddModuleAsync<Modules.Info.Module>(_scopeFactory.CreateScope().ServiceProvider);
+            await _commandService.AddModuleAsync<Modules.Share.Module>(_scopeFactory.CreateScope().ServiceProvider);
         }
 
         private async Task HandleMessage(SocketMessage incomingMessage)
@@ -57,14 +57,14 @@ namespace Hermod.Bot
 
             if (playFile != default)
             {
-                await _commandService.ExecuteAsync(context, "share", _serviceProvider.CreateScope().ServiceProvider);
+                await _commandService.ExecuteAsync(context, "share", _scopeFactory.CreateScope().ServiceProvider);
                 return;
             }
 
             int argPos = 0;
             if (!message.HasStringPrefix(_botOptions.Prefix, ref argPos) && !message.HasMentionPrefix(Client.CurrentUser, ref argPos)) return;
 
-            await _commandService.ExecuteAsync(context, argPos, _serviceProvider.CreateScope().ServiceProvider);
+            await _commandService.ExecuteAsync(context, argPos, _scopeFactory.CreateScope().ServiceProvider);
         }
 
         private async Task CommandExecutedAsync(Optional<CommandInfo> command, ICommandContext context, IResult result)

@@ -1,5 +1,6 @@
 ﻿using Discord.Addons.Hosting;
 using Discord.Addons.Hosting.Util;
+using Discord.Interactions;
 using Discord.WebSocket;
 using MediatR;
 
@@ -7,11 +8,11 @@ namespace Hermod.Bot
 {
     internal class GuildHandler : DiscordClientService
     {
-        private readonly IMediator _mediator;
         private readonly IServiceScopeFactory _scopeFactory;
         public GuildHandler(IServiceScopeFactory scopeFactory,
                             DiscordSocketClient client,
-                            ILogger<GuildHandler> logger) : base(client, logger)
+                            ILogger<GuildHandler> logger
+                            ) : base(client, logger)
         {
             _scopeFactory = scopeFactory;
         }

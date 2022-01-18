@@ -7,27 +7,31 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
 using Discord;
-using Discord.Commands;
+using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 
 namespace Hermod.Bot.Modules.Info
 {
-    public class Module : ModuleBase<SocketCommandContext>
+    internal class Module : InteractionModuleBase<SocketInteractionContext>
     {
-        private readonly ILogger<Module> _logger;
-
-        public Module(ILogger<Module> logger)
+        public Module()
         {
-            _logger = logger;
         }
 
-        [Command("info")]
-        [Alias("stats")]
-        [Summary("Provides information about the bot")]
+        [SlashCommand("info", "Returns basic information for the bot")]
         public async Task Info()
         {
-            _logger.LogDebug("Info command executed");
             await ReplyAsync(GetBotStats());
+        }
+
+        [SlashCommand("issue", "Returns the issue link for the bot")]
+        public async Task Issue()
+        {
+            var linkButton = new ComponentBuilder()
+                .WithButton("Report an Issue", style: ButtonStyle.Link, url: "https://github.com/theiam79/hermod-bot/issues/new/choose")
+                .Build();
+                
+            await ReplyAsync("You can use the link below to open an issue or make a suggestion", components: linkButton);
         }
 
         private string GetBotStats()
