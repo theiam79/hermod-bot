@@ -11,6 +11,7 @@ using Hermod.Bot;
 using Hermod.Core.Extensions;
 using Hermod.Data.Context;
 using Microsoft.EntityFrameworkCore;
+using Hermod.Bot.Options;
 
 IHost host = Host.CreateDefaultBuilder(args)
     .ConfigureServices(services =>

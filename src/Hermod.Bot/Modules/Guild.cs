@@ -8,21 +8,21 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Hermod.Bot.Modules.Guild
+namespace Hermod.Bot.Modules
 {
     [Group("settings", "update bot settings")]
-    internal class Module : InteractionModuleBase<SocketInteractionContext>
+    internal class Guild : InteractionModuleBase<SocketInteractionContext>
     {
         private readonly IMediator _mediator;
 
-        public Module(IMediator mediator)
+        public Guild(IMediator mediator)
         {
             _mediator = mediator;
         }
 
         [SlashCommand("postchannel", "Set the post channel for sharing plays")]
         [RequireUserPermission(GuildPermission.ManageGuild)]
-        public async Task Channel(ITextChannel channel)
+        public async Task UpdateChannelAsync(ITextChannel channel)
         {
             await UpdateSettingAsync(x => x.PostChannel = channel.Id);
         }
@@ -36,7 +36,7 @@ namespace Hermod.Bot.Modules.Guild
 
         [SlashCommand("sharing", "Enable or Disable sharing for the guild")]
         [RequireUserPermission(GuildPermission.ManageGuild)]
-        public async Task SetSharingAsync(bool sharing)
+        public async Task UpdateSharingAsync(bool sharing)
         {
             await UpdateSettingAsync(x => x.Sharing = sharing);
         }

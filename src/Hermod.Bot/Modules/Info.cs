@@ -10,22 +10,22 @@ using Discord;
 using Discord.Interactions;
 using Microsoft.Extensions.Logging;
 
-namespace Hermod.Bot.Modules.Info
+namespace Hermod.Bot.Modules
 {
-    internal class Module : InteractionModuleBase<SocketInteractionContext>
+    internal class Info : InteractionModuleBase<SocketInteractionContext>
     {
-        public Module()
+        public Info()
         {
         }
 
         [SlashCommand("info", "Returns basic information for the bot")]
-        public async Task Info()
+        public async Task InfoAsync()
         {
             await ReplyAsync(GetBotStats());
         }
 
         [SlashCommand("issue", "Returns the issue link for the bot")]
-        public async Task Issue()
+        public async Task IssueAsync()
         {
             var linkButton = new ComponentBuilder()
                 .WithButton("Report an Issue", style: ButtonStyle.Link, url: "https://github.com/theiam79/hermod-bot/issues/new/choose")

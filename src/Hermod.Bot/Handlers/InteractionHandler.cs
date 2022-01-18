@@ -30,7 +30,7 @@ namespace Hermod.Bot
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Logger.LogInformation("Searching for modules to load");
-            await _interactionService.AddModuleAsync<Modules.Guild.Module>(_scopeFactory.CreateScope().ServiceProvider);
+            await _interactionService.AddModuleAsync<Modules.Guild.Guild>(_scopeFactory.CreateScope().ServiceProvider);
 
             Client.InteractionCreated += HandleInteraction;
 

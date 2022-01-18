@@ -12,15 +12,15 @@ using MediatR;
 using FluentResults;
 using Hermod.Bot.Extensions;
 
-namespace Hermod.Bot.Modules.Share
+namespace Hermod.Bot.Modules
 {
-    internal class Module : ModuleBase<SocketCommandContext>
+    internal class Share : ModuleBase<SocketCommandContext>
     {
         private readonly IMediator _mediator;
         private readonly List<string> _photoExtensions;
         private readonly IServiceProvider _serviceProvider;
 
-        public Module(IMediator mediator, IServiceProvider serviceProvider)
+        public Share(IMediator mediator, IServiceProvider serviceProvider)
         {
             _mediator = mediator;
 

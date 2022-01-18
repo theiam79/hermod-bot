@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Hermod.Bot
+namespace Hermod.Bot.Options
 {
     internal class BotOptions
     {
