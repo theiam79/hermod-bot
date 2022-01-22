@@ -7,6 +7,7 @@
         public int BggId { get; init; }
         public string BggUsername { get; init; } = "";
         public string NormalizedBggUsername { get; init; } = "";
+        public bool SubscribeToPlays { get; set; }
         public ICollection<Guild> Guilds { get; init; } = new List<Guild>();
         public List<UserGuild> UserGuilds { get; init; } = new();
     }

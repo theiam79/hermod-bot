@@ -25,7 +25,7 @@ namespace Hermod.Bot
 
             var command = new Core.Features.Guild.RegisterAll.Command
             {
-                GuildIds = Client.Guilds.Select(g => g.Id).ToList()
+                Guilds = Client.Guilds.Select(g => (g.Id, g.DefaultChannel.Id)).ToList()
             };
 
             using var scope = _scopeFactory.CreateScope();
@@ -36,6 +36,7 @@ namespace Hermod.Bot
         private async Task HandleJoinedGuild(SocketGuild arg)
         {
             var command = new Core.Features.Guild.Register.Command { GuildId = arg.Id };
+            
             using var scope = _scopeFactory.CreateScope();
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
             await mediator.Send(command);

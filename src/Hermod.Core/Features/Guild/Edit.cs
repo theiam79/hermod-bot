@@ -25,18 +25,16 @@ namespace Hermod.Core.Features.Guild
         {
             public ulong GuildId { get; set; }
             //public ulong? ManagementRole { get; set; }
-            public ulong? PostChannelId { get; set; }
+            public ulong PostChannelId { get; set; }
             public bool AllowSharing { get; set; }
         }
 
         public class Validator : AbstractValidator<Command>
         {
-            private static readonly ulong? _zero = 0;
             public Validator()
             {
                 RuleFor(x => x.GuildId).NotEmpty();
-                //RuleFor(x => x.ManagementRole).NotEqual(_zero);
-                RuleFor(x => x.PostChannelId).NotEqual(_zero);
+                RuleFor(x => x.PostChannelId).NotEmpty();
             }
         }
 

@@ -11,6 +11,7 @@ using Discord.WebSocket;
 using FluentResults;
 using System.Text.Json;
 using Hermod.BGstats;
+using Discord;
 
 namespace Hermod.Core.Features.Share
 {
@@ -18,11 +19,14 @@ namespace Hermod.Core.Features.Share
     {
         public class Command : IRequest<Result>
         {
-            public ulong Guild { get; init; }
+            public Command(ulong sender, Attachment playFile)
+            {
+                Sender = sender;
+                PlayFile = playFile;
+            }
+
             public ulong Sender { get; init; }
-            public Discord.Attachment? Attachment { get; init; }
-            public Discord.Attachment? PlayFile { get; init; }
-            public List<string> Players { get; init; } = new();
+            public Attachment PlayFile { get; init; }
         }
 
         public class Handler : IRequestHandler<Command, Result>
@@ -48,9 +52,9 @@ namespace Hermod.Core.Features.Share
                 jsonOptions.Converters.Add(new DateTimeConverter());
                 jsonOptions.Converters.Add(new IntToBoolConverter());
 
-                var stream = await _httpClient.GetStreamAsync(request.PlayFile!.Url);
+                var stream = await _httpClient.GetStreamAsync(request.PlayFile.Url, cancellationToken);
 
-                if (await JsonSerializer.DeserializeAsync<PlayFile>(stream, jsonOptions) is not PlayFile playFile)
+                if (await JsonSerializer.DeserializeAsync<PlayFile>(stream, jsonOptions, cancellationToken) is not PlayFile playFile)
                 {
                     return Result.Fail("Unable to parse the supplied .bgsplay file");
                 }
@@ -58,12 +62,11 @@ namespace Hermod.Core.Features.Share
                 var players = playFile.Players.Select(p => p.BggUsername.Trim().ToUpper()).ToList();
 
                 var recipients = await _hermodContext
-                    .UserGuilds
-                    .Where(ug => ug.Guild.GuildId == request.Guild)
-                    .Where(ug => ug.SubscribeToPlays)
-                    .Where(ug => request.Players.Contains(ug.User.NormalizedBggUsername))
-                    .Where(ug => ug.User.DiscordId != request.Sender)
-                    .Select(ug => ug.User.DiscordId)
+                    .Users
+                    .Where(u => u.SubscribeToPlays)
+                    .Where(u => players.Contains(u.NormalizedBggUsername))
+                    .Where(u => u.DiscordId != request.Sender)
+                    .Select(u => u.DiscordId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
 
@@ -72,7 +75,7 @@ namespace Hermod.Core.Features.Share
                     return Result.Ok().WithSuccess("Found no registered players to notify");
                 }
 
-                var sourceStream = await _httpClient.GetStreamAsync(request.Attachment!.Url, cancellationToken);
+                var sourceStream = await _httpClient.GetStreamAsync(request.PlayFile.Url, cancellationToken);
                 var memoryStream = new MemoryStream();
                 await sourceStream.CopyToAsync(memoryStream, cancellationToken);
 
@@ -89,12 +92,12 @@ namespace Hermod.Core.Features.Share
 
             private async Task<Result> ShareWithPlayer(ulong userId, Stream stream)
             {
-                if (await _discordSocketClient.GetUserAsync(userId) is not Discord.IUser user)
+                if (await _discordSocketClient.GetUserAsync(userId) is not IUser user)
                 {
                     return Result.Fail($"Could not find user with ID {userId}");
                 }
 
-                if (await user.CreateDMChannelAsync() is not Discord.IDMChannel channel)
+                if (await user.CreateDMChannelAsync() is not IDMChannel channel)
                 {
                     return Result.Fail($"Failed to open DM channel with {user.Username}");
                 }
@@ -108,10 +111,8 @@ namespace Hermod.Core.Features.Share
         {
             public Validator()
             {
-                RuleFor(command => command.Guild).NotEmpty();
-                RuleFor(command => command.Attachment).NotEmpty();
                 RuleFor(command => command.Sender).NotEmpty();
-                RuleFor(command => command.Players).NotEmpty();
+                RuleFor(command => command.PlayFile).NotEmpty();
             }
         }
     }

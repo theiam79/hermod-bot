@@ -10,11 +10,10 @@ namespace Hermod.Data.Models
     {
         public Guid Id { get; init; }
         public string UserNickname { get; set; } = "";
-        public bool SubscribeToPlays { get; set; }
         public ulong UserId { get; init; }
-        public User User { get; init; }
+        public User User { get; init; } = null!;
 
         public ulong GuildId { get; init; }
-        public Guild Guild { get; init; }
+        public Guild Guild { get; init; } = null!;
     }
 }

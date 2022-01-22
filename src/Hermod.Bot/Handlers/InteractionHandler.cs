@@ -41,10 +41,10 @@ namespace Hermod.Bot
             _interactionService.SlashCommandExecuted += SlashCommandExecuted;
             await Client.WaitForReadyAsync(stoppingToken);
 
-            foreach (var guild in Client.Guilds)
-            {
-                await _interactionService.RegisterCommandsToGuildAsync(guild.Id);
-            }
+            //foreach (var guild in Client.Guilds)
+            //{
+            //    await _interactionService.RegisterCommandsToGuildAsync(guild.Id);
+            //}
 
             //await _interactionService.RegisterCommandsToGuildAsync(932103115761647626);
             //await _interactionService.RegisterCommandsToGuildAsync(196095053154746369);

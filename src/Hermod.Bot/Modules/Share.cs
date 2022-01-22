@@ -44,12 +44,7 @@ namespace Hermod.Bot.Modules
                 return;
             }
 
-            var notifyCommand = new Core.Features.Share.Notify.Command
-            {
-                Guild = Context.Guild?.Id ?? 1,
-                Sender = Context.User.Id,
-                Attachment = file
-            };
+            var notifyCommand = new Core.Features.Share.Notify.Command(Context.User.Id, file);
 
             var notifyTask = _mediator.Send(notifyCommand);
 
@@ -61,17 +56,11 @@ namespace Hermod.Bot.Modules
                                                                                 Predicate,
                                                                                 default);
 
-            var postCommand = new Core.Features.Share.Post.Command
-            {
-                Sender = Context.User.Id,
-                CommandChannel = Context.Channel.Id,
-                Guild = Context.Guild?.Id,
-                PlayFile = file,
-                ImageUrl = (await photoMessageTask)?.Attachments.FirstOrDefault(a => _photoExtensions.Any(e => a.Filename.EndsWith(e, StringComparison.InvariantCultureIgnoreCase)))?.Url
-            };
+            var imageUrl = (await photoMessageTask)?.Attachments.FirstOrDefault(a => _photoExtensions.Any(e => a.Filename.EndsWith(e, StringComparison.InvariantCultureIgnoreCase)))?.Url;
+
+            var postCommand = new Core.Features.Share.Post.Command(Context.User.Id, file, imageUrl);
 
             var postTask = _mediator.Send(postCommand);
-
 
             var finalResult = Result.Merge(await Task.WhenAll(notifyTask, postTask));
 

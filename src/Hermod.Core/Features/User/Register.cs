@@ -16,7 +16,7 @@ namespace Hermod.Core.Features.User
 {
     public class Register
     {
-        public class Command : IRequest<Result>
+        public record class Command : IRequest<Result>
         {
             public ulong DiscordId { get; init; }
             public string BggUsername { get; init; } = "";
@@ -45,7 +45,7 @@ namespace Hermod.Core.Features.User
 
                 if (userAlreadyRegistered)
                 {
-                    return Result.Ok();
+                    return Result.Ok().WithSuccess("User already registered");
                 }
 
                 var query = new Bgg.Sdk.Core.User.QueryParameters(request.BggUsername);
@@ -61,7 +61,6 @@ namespace Hermod.Core.Features.User
                     {
                         GuildId = gu.Guild.Id,
                         UserNickname = gu.Nickname,
-                        SubscribeToPlays = true,
                     })
                     .ToList();
 
@@ -71,6 +70,7 @@ namespace Hermod.Core.Features.User
                     BggUsername = request.BggUsername,
                     NormalizedBggUsername = normalizedBggUsername,
                     BggId = bggUser.Id,
+                    SubscribeToPlays = true,
                     UserGuilds = guildsUserIsIn
                 };
 

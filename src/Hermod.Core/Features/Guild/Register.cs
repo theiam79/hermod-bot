@@ -16,6 +16,7 @@ namespace Hermod.Core.Features.Guild
         public class Command : IRequest
         {
             public ulong GuildId { get; init; }
+            public ulong ChannelId { get; init; }
         }
 
         public class Handler : IRequestHandler<Command>
@@ -38,7 +39,8 @@ namespace Hermod.Core.Features.Guild
 
                 var guild = new Data.Models.Guild
                 {
-                    GuildId = request.GuildId
+                    GuildId = request.GuildId,
+                    PostChannelId = request.ChannelId
                 };
 
                 _hermodContext.Guilds.Add(guild);

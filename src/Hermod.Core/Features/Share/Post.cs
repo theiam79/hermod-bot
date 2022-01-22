@@ -20,11 +20,27 @@ namespace Hermod.Core.Features.Share
     {
         public class Command : IRequest<Result>
         {
+            public Command(ulong sender, Attachment playFile, string? imageUrl = null)
+            {
+                Sender = sender;
+                PlayFile = playFile;
+                ImageUrl = imageUrl;
+            }
+
             public ulong Sender { get; init; }
-            public ulong? Guild { get; init; }
-            public ulong CommandChannel { get; init; }
-            public Attachment? PlayFile { get; init; }
+            public Attachment PlayFile { get; init; }
             public string? ImageUrl { get; init; }
+        }
+
+        public class Validator : AbstractValidator<Command>
+        {
+            public Validator()
+            {
+                RuleFor(command => command.Sender).NotEmpty();
+                RuleFor(command => command.PlayFile).NotEmpty()
+                    .Must(a => a!.Filename.EndsWith(".bgsplay", StringComparison.InvariantCultureIgnoreCase))
+                    .WithMessage("Invalid extension for play file attachment");
+            }
         }
 
         public class Handler : IRequestHandler<Command, Result>
@@ -44,28 +60,12 @@ namespace Hermod.Core.Features.Share
 
             public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
             {
-                List<Target> targets;
-
-                if (request.Guild == null)
-                {
-                    targets = await _hermodContext
-                        .Guilds
-                        .Where(g => request.Guild == default || g.GuildId == request.Guild!.Value)
-                        .Where(g => g.AllowSharing)
-                        .Where(g => g.PostChannelId != default)
-                        .Where(g => g.Users.Any(u => u.DiscordId == request.Sender))
-                        .Select(g => new Target(g.GuildId, g.PostChannelId!.Value))
-                        .Distinct()
-                        .ToListAsync(cancellationToken);
-                }
-                else
-                {
-                    targets = await _hermodContext
-                        .Guilds
-                        .Where(g => g.GuildId == request.Guild.Value)
-                        .Select(g => new Target(g.GuildId, g.PostChannelId ?? request.CommandChannel))
-                        .ToListAsync();
-                }
+                var targets = await _hermodContext
+                    .Guilds
+                    .Where(g => g.AllowSharing)
+                    .Where(g => g.Users.Any(u => u.DiscordId == request.Sender))
+                    .Select(g => new { g.GuildId, g.PostChannelId })
+                    .ToListAsync(cancellationToken);
 
                 if (!targets.Any())
                 {
@@ -97,20 +97,8 @@ namespace Hermod.Core.Features.Share
                 }
                 var embed = embedBuilder.Build();
 
-                var results = await Task.WhenAll(targets.Select(pt => PostPlay(pt.Guild, pt.Channel, embed)));
+                var results = await Task.WhenAll(targets.Select(pt => PostPlay(pt.GuildId, pt.PostChannelId, embed)));
                 return Result.Merge(results);
-            }
-
-            private class Target
-            {
-                public Target(ulong guild, ulong channel)
-                {
-                    Guild = guild;
-                    Channel = channel;
-                }
-
-                public ulong Guild { get; }
-                public ulong Channel { get; }
             }
 
             private async Task<Result> PostPlay(ulong guildId, ulong channelId, Embed embed)
@@ -276,18 +264,6 @@ namespace Hermod.Core.Features.Share
 
                 var sb = new StringBuilder();
                 return sb.AppendJoin(" | ", footerItems).ToString();
-            }
-        }
-
-        public class Validator : AbstractValidator<Command>
-        {
-            public Validator()
-            {
-                RuleFor(command => command.Guild).NotEmpty();
-                RuleFor(command => command.CommandChannel).NotEmpty();
-                RuleFor(command => command.PlayFile).NotEmpty()
-                    .Must(a => a!.Filename.EndsWith(".bgsplay", StringComparison.InvariantCultureIgnoreCase))
-                    .WithMessage("Invalid extension for play file attachment");
             }
         }
     }

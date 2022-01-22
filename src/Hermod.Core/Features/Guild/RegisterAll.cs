@@ -16,7 +16,7 @@ namespace Hermod.Core.Features.Guild
     {
         public class Command  : IRequest
         {
-            public List<ulong> GuildIds { get; init; } = new();
+            public List<(ulong GuildId, ulong ChannelId)> Guilds { get; init; } = new();
         }
 
         public class Handler : IRequestHandler<Command>
@@ -40,12 +40,12 @@ namespace Hermod.Core.Features.Guild
                     .ToListAsync(cancellationToken);
 
                 var guildsToAdd = request
-                    .GuildIds
-                    .Except(registeredGuilds)
+                    .Guilds
+                    .ExceptBy(registeredGuilds, x => x.GuildId)
                     .Select(g => new Data.Models.Guild
                     {
-                        GuildId = g,
-                        PostChannelId = GetPostChannel(g),
+                        GuildId = g.GuildId,
+                        PostChannelId = g.ChannelId,
                         AllowSharing = true
                     });
 
@@ -55,19 +55,13 @@ namespace Hermod.Core.Features.Guild
                     await _hermodContext.SaveChangesAsync(CancellationToken.None);
                 }
 
-                foreach (var guild in request.GuildIds)
+                foreach (var guild in request.Guilds.Select(g => g.GuildId))
                 {
                     await _interactionService.RegisterCommandsToGuildAsync(guild);
                 }
 
                 return default;
             }
-            private ulong? GetPostChannel(ulong guild) => guild switch
-            {
-                196095053154746369 => 919038735188897792,
-                932103115761647626 => 932103115761647629,
-                _ => null
-            };
         }
 
 
@@ -75,7 +69,11 @@ namespace Hermod.Core.Features.Guild
         {
             public Validator()
             {
-                RuleForEach(command => command.GuildIds).NotEmpty();
+                RuleForEach(command => command.Guilds).ChildRules(guild =>
+                {
+                    guild.RuleFor(g => g.GuildId).NotEmpty();
+                    guild.RuleFor(g => g.ChannelId).NotEmpty();
+                });
             }
         }
     }
