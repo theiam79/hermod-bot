@@ -31,7 +31,7 @@ namespace Hermod.Bot.Modules
         //{
         //    await UpdateSettingAsync(x => x.ManagementRole = role.Id);
         //}
-
+        
         [SlashCommand("sharing", "Enable or Disable sharing for the guild")]
         [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task UpdateSharingAsync(bool sharing) => await UpdateSettingAsync(x => x with { AllowSharing = sharing });

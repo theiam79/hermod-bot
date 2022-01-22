@@ -30,16 +30,26 @@ namespace Hermod.Bot
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
             Logger.LogInformation("Searching for modules to load");
-            await _interactionService.AddModuleAsync<Modules.Guild.Guild>(_scopeFactory.CreateScope().ServiceProvider);
+
+            var serviceProvider = _scopeFactory.CreateScope().ServiceProvider;
+            await _interactionService.AddModuleAsync<Modules.Guild>(serviceProvider);
+            await _interactionService.AddModuleAsync<Modules.Info>(serviceProvider);
+            await _interactionService.AddModuleAsync<Modules.User>(serviceProvider);
 
             Client.InteractionCreated += HandleInteraction;
 
             _interactionService.SlashCommandExecuted += SlashCommandExecuted;
             await Client.WaitForReadyAsync(stoppingToken);
 
+            foreach (var guild in Client.Guilds)
+            {
+                await _interactionService.RegisterCommandsToGuildAsync(guild.Id);
+            }
+
             //await _interactionService.RegisterCommandsToGuildAsync(932103115761647626);
             //await _interactionService.RegisterCommandsToGuildAsync(196095053154746369);
         }
+
         private async Task HandleInteraction(SocketInteraction arg)
         {
             try

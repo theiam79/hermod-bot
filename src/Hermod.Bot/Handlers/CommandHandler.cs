@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading.Tasks;
 using SerilogTimings.Extensions;
 using Microsoft.Extensions.Logging;
+using Hermod.Bot.Options;
 
 namespace Hermod.Bot
 {
@@ -40,8 +41,7 @@ namespace Hermod.Bot
             _commandService.CommandExecuted += CommandExecutedAsync;
 
             Logger.LogInformation("Searching for modules to load");
-            await _commandService.AddModuleAsync<Modules.Info.Info>(_scopeFactory.CreateScope().ServiceProvider);
-            await _commandService.AddModuleAsync<Modules.Share.Share>(_scopeFactory.CreateScope().ServiceProvider);
+            await _commandService.AddModuleAsync<Modules.Share>(_scopeFactory.CreateScope().ServiceProvider);
         }
 
         private async Task HandleMessage(SocketMessage incomingMessage)

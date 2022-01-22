@@ -1,6 +1,7 @@
 ﻿using Bgg.Sdk;
 using Discord;
 using Discord.WebSocket;
+using FluentResults;
 using FluentValidation;
 using Hermod.Data.Context;
 using MediatR;
@@ -15,22 +16,13 @@ namespace Hermod.Core.Features.User
 {
     public class Register
     {
-        public class Command : IRequest
+        public class Command : IRequest<Result>
         {
-            public ulong UserId { get; init; }
+            public ulong DiscordId { get; init; }
             public string BggUsername { get; init; } = "";
-            public ulong GuildId { get; init; }
-            public SubscibeOption SubscibeOption { get; init; }
         }
 
-        public enum SubscibeOption
-        {
-            None = 0,
-            All = 1,
-            ThisGuild = 2
-        }
-
-        public class Handler : IRequestHandler<Command>
+        public class Handler : IRequestHandler<Command, Result>
         {
             private readonly HermodContext _hermodContext;
             private readonly IBggClient _bggClient;
@@ -43,28 +35,28 @@ namespace Hermod.Core.Features.User
                 _discordClient = discordClient;
             }
 
-            public async Task<Unit> Handle(Command request, CancellationToken cancellationToken)
+            public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
             {
                 var normalizedBggUsername = request.BggUsername.ToUpper();
                 var userAlreadyRegistered = await _hermodContext
                     .Users
-                    .Where(u => u.DiscordId == request.UserId && u.NormalizedBggUsername == normalizedBggUsername)
+                    .Where(u => u.DiscordId == request.DiscordId && u.NormalizedBggUsername == normalizedBggUsername)
                     .AnyAsync();
 
                 if (userAlreadyRegistered)
                 {
-                    return default;
+                    return Result.Ok();
                 }
 
                 var query = new Bgg.Sdk.Core.User.QueryParameters(request.BggUsername);
                 if ((await _bggClient.UserAsync(query)) is not Bgg.Sdk.Models.User bggUser)
                 {
-                    return default;
+                    return Result.Fail($"Could not find BGG user with username: {request.BggUsername}");
                 }
 
-                var guildsToRegister = _discordClient
+                var guildsUserIsIn = _discordClient
                     .Guilds
-                    .SelectMany(g => g.Users.Where(u => u.Id == request.UserId).Take(1))
+                    .SelectMany(g => g.Users.Where(u => u.Id == request.DiscordId).Take(1))
                     .Select(gu => new Data.Models.UserGuild
                     {
                         GuildId = gu.Guild.Id,
@@ -75,17 +67,17 @@ namespace Hermod.Core.Features.User
 
                 var user = new Data.Models.User
                 {
-                    DiscordId = request.UserId,
+                    DiscordId = request.DiscordId,
                     BggUsername = request.BggUsername,
                     NormalizedBggUsername = normalizedBggUsername,
                     BggId = bggUser.Id,
-                    UserGuilds = guildsToRegister
+                    UserGuilds = guildsUserIsIn
                 };
 
                 _hermodContext.Users.Add(user);
                 await _hermodContext.SaveChangesAsync(CancellationToken.None);
 
-                return default;
+                return Result.Ok();
             }
         }
 
@@ -93,11 +85,8 @@ namespace Hermod.Core.Features.User
         {
             public Validator()
             {
-                RuleFor(command => command.UserId).NotEmpty();
+                RuleFor(command => command.DiscordId).NotEmpty();
                 RuleFor(command => command.BggUsername).NotEmpty();
-                RuleFor(command => command.GuildId).NotEmpty()
-                    .When(command => command.SubscibeOption == SubscibeOption.ThisGuild)
-                    .WithMessage("This guild option requires a guildId to be included in the request");
             }
         }
     }
