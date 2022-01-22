@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="discord.addons.hosting" Version="5.0.0" />
-    <PackageReference Include="discord.net" Version="3.0.0" />
+    <PackageReference Include="discord.net" Version="3.2.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.InMemory" Version="6.0.1" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="6.0.1" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="6.0.0" />
@@ -22,7 +22,7 @@
     <PackageReference Include="serilog.extensions.hosting" Version="4.2.0" />
     <PackageReference Include="serilog.settings.configuration" Version="3.3.0" />
     <PackageReference Include="serilog.sinks.console" Version="4.0.1" />
-    <PackageReference Include="serilog.sinks.seq" Version="5.1.0" />
+    <PackageReference Include="serilog.sinks.seq" Version="5.1.1" />
     <PackageReference Include="SerilogTimings" Version="2.3.0" />
   </ItemGroup>
 
