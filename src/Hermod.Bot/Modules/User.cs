@@ -20,7 +20,7 @@ namespace Hermod.Bot.Modules
         [SlashCommand("register", "register your bgg username, giving you access to play alerts and making your collection searchable")]
         public async Task RegisterCollectionAsync(string bggUsername)
         {
-            await DeferAsync();
+            await DeferAsync(ephemeral: true);
 
             var command = new Core.Features.User.Register.Command
             {
@@ -29,6 +29,7 @@ namespace Hermod.Bot.Modules
             };
 
             await _mediator.Send(command);
+            await FollowupAsync($"Successfully registered {bggUsername}");
         }
     }
 }

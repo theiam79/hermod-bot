@@ -65,6 +65,7 @@ namespace Hermod.Core.Features.Share
                     .Where(g => g.AllowSharing)
                     .Where(g => g.Users.Any(u => u.DiscordId == request.Sender))
                     .Select(g => new { g.GuildId, g.PostChannelId })
+                    .AsNoTracking()
                     .ToListAsync(cancellationToken);
 
                 if (!targets.Any())
@@ -112,8 +113,15 @@ namespace Hermod.Core.Features.Share
                 {
                     return Result.Fail($"Could not find the configured post channel for guild: {guild.Name}");
                 }
-
-                await channel.SendMessageAsync(embed: embed);
+                try
+                {
+                    var result = await channel.SendMessageAsync(embed: embed);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error trying to post play to {Channel} in {Guild}", channelId, guildId);
+                    return Result.Fail($"Error posting to {channelId} in {guildId}");
+                }
                 return Result.Ok().WithSuccess($"Successfully posted to {guild.Name}");
             }
 
@@ -178,12 +186,19 @@ namespace Hermod.Core.Features.Share
                     {
                         sb.Append($" - {calculatedScore}");
                     }
+                    else if (!string.IsNullOrEmpty(score.ScoreExpression))
+                    {
+                        _logger.LogWarning("Failed to calculate value of: {ScoreExpression}", score.ScoreExpression);
+                        sb.Append($" - {score.ScoreExpression}");
+                    }
+
                     if (score.Winner) { sb.Append(" :trophy: "); }
                     sb.AppendLine();
 
                     sb.Append("```");
                     if (!string.IsNullOrEmpty(score.Role)) { sb.AppendLine($"Role: {score.Role}"); }
                     sb.Append($"BGG: {(string.IsNullOrEmpty(score.Player.BggUsername) ? "Not set" : score.Player.BggUsername)}```");
+                    sb.AppendLine();
                 }
 
                 yield return new EmbedFieldBuilder()

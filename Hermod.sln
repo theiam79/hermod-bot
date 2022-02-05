@@ -9,7 +9,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hermod.Core", "src\Hermod.C
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hermod.Bot", "src\Hermod.Bot\Hermod.Bot.csproj", "{A748E1BC-3E78-4773-9C87-D3181D5AB783}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hermod.BGstats", "src\Hermod.BGstats\Hermod.BGstats.csproj", "{F8CC48C2-7EA6-486D-A3FE-491C9A324452}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Hermod.BGstats", "src\Hermod.BGstats\Hermod.BGstats.csproj", "{F8CC48C2-7EA6-486D-A3FE-491C9A324452}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Sample", "Sample", "{4C97FD68-0926-4592-80E7-FB1B80852224}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hermod.Testing", "exclude\Hermod.Testing\Hermod.Testing.csproj", "{5114ED22-26A6-4B03-979C-C3760ED8DDDE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,9 +37,16 @@ Global
 		{F8CC48C2-7EA6-486D-A3FE-491C9A324452}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8CC48C2-7EA6-486D-A3FE-491C9A324452}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8CC48C2-7EA6-486D-A3FE-491C9A324452}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5114ED22-26A6-4B03-979C-C3760ED8DDDE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5114ED22-26A6-4B03-979C-C3760ED8DDDE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5114ED22-26A6-4B03-979C-C3760ED8DDDE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5114ED22-26A6-4B03-979C-C3760ED8DDDE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{5114ED22-26A6-4B03-979C-C3760ED8DDDE} = {4C97FD68-0926-4592-80E7-FB1B80852224}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {33CB434B-03DA-49F4-86F6-906FED4B7442}

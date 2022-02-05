@@ -14,16 +14,17 @@ namespace Hermod.Bot.Extensions
         {
             EmbedBuilder builder = new();
 
-            Color color = (result.Successes.Any(), result.Errors.Any()) switch
+            (Color color, string title) options = (result.Successes.Any(), result.Errors.Any()) switch
             {
-                (true, true) => Color.Gold,
-                (true, _) => Color.Green,
-                (_, true) => Color.Red,
-                _ => Color.LightGrey
+                (true, true) => (Color.Gold, "Warning"),
+                (true, _) => (Color.Green, "Success"),
+                (_, true) => (Color.Red, "Error"),
+                _ => (Color.LightGrey, "Unknown")
             };
 
             builder
-                .WithColor(color)
+                .WithTitle(options.title)
+                .WithColor(options.color)
                 .WithFields(CreateFields(result));
 
             if (description != null) { builder.WithDescription(description); }
@@ -36,8 +37,8 @@ namespace Hermod.Bot.Extensions
             if (result.Successes.Any())
             {
                 yield return new EmbedFieldBuilder()
-                    .WithName("Success")
-                    .WithValue(string.Join(",", result.Successes.Select(x => x.Message)))
+                    .WithName("Successes")
+                    .WithValue(string.Join("\r\n", result.Successes.Select(x => x.Message)))
                     .WithIsInline(false);
             }
 
@@ -45,7 +46,7 @@ namespace Hermod.Bot.Extensions
             {
                 yield return new EmbedFieldBuilder()
                     .WithName("Errors")
-                    .WithValue(string.Join(",", result.Errors.Select(r => r.Message)))
+                    .WithValue(string.Join("\r\n", result.Errors.Select(r => r.Message)))
                     .WithIsInline(false);
             }
         }

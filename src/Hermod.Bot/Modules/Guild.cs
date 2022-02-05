@@ -36,6 +36,7 @@ namespace Hermod.Bot.Modules
         [RequireUserPermission(GuildPermission.ManageGuild)]
         public async Task UpdateSharingAsync(bool sharing) => await UpdateSettingAsync(x => x with { AllowSharing = sharing });
 
+
         private async Task UpdateSettingAsync(Func<Core.Features.Guild.Edit.Command, Core.Features.Guild.Edit.Command> modify)
         {
             await DeferAsync();

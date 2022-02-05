@@ -19,12 +19,14 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddHostedService<CommandHandler>();
         services.AddHostedService<InteractionHandler>();
         services.AddHostedService<GuildHandler>();
+        services.AddMemoryCache();
 
         services
             .AddOptions<BotOptions>();
 
         services.AddHermod();
-        services.AddDbContext<HermodContext>(o => o.UseInMemoryDatabase("temp-testing"));
+        //services.AddDbContext<HermodContext>(o => o.UseInMemoryDatabase("temp-testing"));
+        services.AddDbContext<HermodContext>(o => o.UseSqlite("FileName=./data/Hermod.db"));
     })
     .UseSerilog((context, services, config) =>
     {
@@ -63,5 +65,12 @@ IHost host = Host.CreateDefaultBuilder(args)
         config.DefaultRunMode = Discord.Interactions.RunMode.Async;
     })
     .Build();
+
+using (var scope = host.Services.CreateScope())
+{
+    System.IO.Directory.CreateDirectory("./data");
+    var context = scope.ServiceProvider.GetRequiredService<HermodContext>();
+    await context.Database.EnsureCreatedAsync();
+}
 
 await host.RunAsync();
