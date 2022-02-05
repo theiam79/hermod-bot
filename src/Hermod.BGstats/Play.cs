@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Web;
+using NCalc;
 
 namespace Hermod.BGstats
 {
@@ -126,7 +127,7 @@ namespace Hermod.BGstats
         public string StartPosition { get; init; } = "";
         public double? CalculateScore()
         {
-            return default;
+            return new Expression(ScoreExpression, EvaluateOptions.None).Evaluate() is double evaluated ? evaluated : default;
         }
     }
 }
