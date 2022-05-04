@@ -17,10 +17,11 @@ namespace Hermod.Bot.Modules
     internal class Share : ModuleBase<SocketCommandContext>
     {
         private readonly IMediator _mediator;
-        private readonly List<string> _photoExtensions;
-        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<Share> _logger;
 
-        public Share(IMediator mediator, IServiceProvider serviceProvider)
+        private readonly List<string> _photoExtensions;
+
+        public Share(IMediator mediator, ILogger<Share> logger)
         {
             _mediator = mediator;
 
@@ -30,7 +31,7 @@ namespace Hermod.Bot.Modules
                 "jpeg",
                 "png"
             };
-            _serviceProvider = serviceProvider;
+            _logger = logger;
         }
 
         [Command("share")]
@@ -44,28 +45,44 @@ namespace Hermod.Bot.Modules
                 return;
             }
 
+            _logger.LogDebug("Sending notify command");
             var notifyCommand = new Core.Features.Share.Notify.Command(Context.User.Id, file);
 
             var notifyTask = _mediator.Send(notifyCommand);
 
-            var photoMessageTask = ResponseUtilities.SkippableWaitForResponse("Send a photo if you'd like to attach one",
-                                                                                "Skip",
-                                                                                Context.Client,
-                                                                                Context.Channel,
-                                                                                TimeSpan.FromSeconds(30),
-                                                                                Predicate,
-                                                                                default);
+            _logger.LogDebug("Waiting for photo or skip button press");
+            try
+            {
 
-            var imageUrl = (await photoMessageTask)?.Attachments.FirstOrDefault(a => _photoExtensions.Any(e => a.Filename.EndsWith(e, StringComparison.InvariantCultureIgnoreCase)))?.Url;
 
-            var postCommand = new Core.Features.Share.Post.Command(Context.User.Id, file, imageUrl);
+                var photoMessageTask = ResponseUtilities.SkippableWaitForResponse("Send a photo if you'd like to attach one",
+                                                                                    "Skip",
+                                                                                    Context.Client,
+                                                                                    Context.Channel,
+                                                                                    TimeSpan.FromSeconds(30),
+                                                                                    Predicate,
+                                                                                    default);
 
-            var postTask = _mediator.Send(postCommand);
+                var imageUrl = (await photoMessageTask)?.Attachments.FirstOrDefault(a => _photoExtensions.Any(e => a.Filename.EndsWith(e, StringComparison.InvariantCultureIgnoreCase)))?.Url;
 
-            var finalResult = Result.Merge(await Task.WhenAll(notifyTask, postTask));
+                _logger.LogDebug("Photo received or skip button pressed");
 
-            await ReplyAsync(embed: finalResult.ToEmbed());
-            
+                _logger.LogDebug("Sending post command");
+                var postCommand = new Core.Features.Share.Post.Command(Context.User.Id, file, imageUrl);
+
+                var postTask = _mediator.Send(postCommand);
+
+                _logger.LogDebug("Waiting for post and notify commands to complete");
+                var finalResult = Result.Merge(await Task.WhenAll(notifyTask, postTask));
+
+                await ReplyAsync(embed: finalResult.ToEmbed());
+
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
 
             bool Predicate(SocketMessage message) => FromSourceUser(message) && HasPhotoAttachment(message);
             bool FromSourceUser(SocketMessage message) => message.Author.Id == Context.User.Id;

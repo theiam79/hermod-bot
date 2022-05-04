@@ -57,6 +57,7 @@ namespace Hermod.Bot
 
             if (playFile != default)
             {
+                Logger.LogDebug("Message had an attached .bgsplay file");
                 await _commandService.ExecuteAsync(context, "share", _scopeFactory.CreateScope().ServiceProvider);
                 return;
             }

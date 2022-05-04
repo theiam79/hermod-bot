@@ -35,8 +35,7 @@ namespace Hermod.Bot
             await _interactionService.AddModuleAsync<Modules.Guild>(serviceProvider);
             await _interactionService.AddModuleAsync<Modules.Info>(serviceProvider);
             await _interactionService.AddModuleAsync<Modules.User>(serviceProvider);
-            await _interactionService.AddModuleAsync<Modules.Collection>(serviceProvider);
-            await _interactionService.AddModuleAsync<Modules.CollectionComponent>(serviceProvider);
+            await _interactionService.AddModuleAsync<Modules.CollectionModule>(serviceProvider);
 
             Client.InteractionCreated += HandleInteraction;
 

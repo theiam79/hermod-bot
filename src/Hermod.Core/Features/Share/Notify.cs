@@ -64,8 +64,9 @@ namespace Hermod.Core.Features.Share
                 var recipients = await _hermodContext
                     .Users
                     .Where(u => u.SubscribeToPlays)
-                    .Where(u => players.Contains(u.NormalizedBggUsername))
+                    //.Where(u => players.Contains(u.NormalizedBggUsername))
                     .Where(u => u.DiscordId != request.Sender)
+                    .IntersectBy(players, u => u.NormalizedBggUsername)
                     .Select(u => u.DiscordId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
@@ -84,13 +85,13 @@ namespace Hermod.Core.Features.Share
                 foreach (var user in recipients)
                 {
                     memoryStream.Seek(0, SeekOrigin.Begin);
-                    results.Add(await ShareWithPlayer(user, memoryStream));
+                    results.Add(await ShareWithPlayer(user, request.PlayFile.Filename, memoryStream));
                 }
 
                 return Result.Merge(results.ToArray());
             }
 
-            private async Task<Result> ShareWithPlayer(ulong userId, Stream stream)
+            private async Task<Result> ShareWithPlayer(ulong userId, string fileName, Stream stream)
             {
                 if (await _discordSocketClient.GetUserAsync(userId) is not IUser user)
                 {
@@ -102,7 +103,7 @@ namespace Hermod.Core.Features.Share
                     return Result.Fail($"Failed to open DM channel with {user.Username}");
                 }
 
-                await channel.SendFileAsync(stream, "A play was shared that included your BGG username");
+                await channel.SendFileAsync(stream, fileName);
                 return Result.Ok().WithSuccess($"Shared with {user.Username}");
             }
         }

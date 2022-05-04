@@ -127,7 +127,42 @@ namespace Hermod.BGstats
         public string StartPosition { get; init; } = "";
         public double? CalculateScore()
         {
-            return new Expression(ScoreExpression, EvaluateOptions.None).Evaluate() is double evaluated ? evaluated : default;
+            if (!calculated)
+            {
+                Calculate();
+            }
+            return calculatedValue;
+        }
+
+        private bool calculated;
+        private double? calculatedValue;
+        private void Calculate()
+        {
+            calculatedValue = ScoreExpression switch
+            {
+                null => default,
+                "" => default,
+                not null when double.TryParse(ScoreExpression, out var parsed) => parsed,
+                not null when TryEvaluate(ScoreExpression, out var evaluated) => evaluated,
+                _ => default
+            };
+
+            calculated = true;
+        }
+
+        private bool TryEvaluate(string expression, out double? result)
+        {
+            result = default;
+            try
+            {
+                var exp = new Expression(ScoreExpression, EvaluateOptions.None);
+                result = exp.Evaluate() as double?;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+            return true;
         }
     }
 }

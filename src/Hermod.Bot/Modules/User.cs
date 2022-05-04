@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MediatR;
+using Discord;
 
 namespace Hermod.Bot.Modules
 {
@@ -31,5 +32,13 @@ namespace Hermod.Bot.Modules
             await _mediator.Send(command);
             await FollowupAsync($"Successfully registered {bggUsername}");
         }
+
+        //[SlashCommand("wanttoplay", "get games on a users want to play list")]
+        //public async Task GetUserWantToPlayAsync(IUser user)
+        //{
+        //    await DeferAsync(ephemeral: true);
+
+
+        //}
     }
 }

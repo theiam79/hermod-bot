@@ -24,6 +24,7 @@ namespace Hermod.Bot
                 .WithButton(buttonLabel, customId: _skipId)
                 .Build();
 
+            Console.WriteLine("Sending image prompt");
             var prompt = await channel.SendMessageAsync(message, components: component);
 
             var tcs = new TaskCompletionSource<SocketMessage?>();
@@ -53,8 +54,10 @@ namespace Hermod.Bot
 
             Task HandleMessage(SocketMessage message)
             {
+                Console.WriteLine("Message received");
                 if (!message.Author.IsBot && predicate(message))
                 {
+                    Console.WriteLine("Message meets criteria");
                     waitCancelSource.Cancel();
                     tcs.SetResult(message);
                 }
@@ -64,10 +67,12 @@ namespace Hermod.Bot
 
             Task HandleInteraction(SocketInteraction interaction)
             {
+                Console.WriteLine("Interaction received");
                 if (interaction is SocketMessageComponent component 
                     && component.Message.Id == prompt.Id
                     && component.Data.CustomId == _skipId)
                 {
+                    Console.WriteLine("Image wait skipped");
                     waitCancelSource.Cancel();
                     tcs.SetResult(null);
                 }

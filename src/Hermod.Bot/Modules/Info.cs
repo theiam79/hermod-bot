@@ -31,7 +31,7 @@ namespace Hermod.Bot.Modules
                 .WithButton("Report an Issue", style: ButtonStyle.Link, url: "https://github.com/theiam79/hermod-bot/issues/new/choose")
                 .Build();
                 
-            await ReplyAsync("You can use the link below to open an issue or make a suggestion", components: linkButton);
+            await RespondAsync("You can use the link below to open an issue or make a suggestion", components: linkButton);
         }
 
         private string GetBotStats()

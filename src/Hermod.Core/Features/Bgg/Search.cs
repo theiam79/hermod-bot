@@ -3,6 +3,7 @@ using FluentResults;
 using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,28 +32,39 @@ namespace Hermod.Core.Features
             private readonly IBggClient _bggClient;
             private readonly IMemoryCache _memoryCache;
 
-            public Handler(IBggClient bggClient, IMemoryCache memoryCache)
+            private readonly ILogger<Handler> _logger;
+
+            public Handler(IBggClient bggClient, IMemoryCache memoryCache, ILogger<Handler> logger)
             {
                 _bggClient = bggClient;
                 _memoryCache = memoryCache;
+                _logger = logger;
             }
 
             public Task<Result<List<Bgg.Sdk.Models.SearchResult.Item>>> Handle(Query request, CancellationToken cancellationToken)
             {
                 return Result.Try(async () =>
                 {
-                    return await _memoryCache.GetOrCreateAsync(request.SearchTerm, async entry =>
+                    try
                     {
-                        entry.SetSlidingExpiration(TimeSpan.FromMinutes(15));
+                        return await _memoryCache.GetOrCreateAsync(request.SearchTerm, async entry =>
+                          {
+                              entry.SetSlidingExpiration(TimeSpan.FromMinutes(15));
 
-                        var query = new Bgg.Sdk.Core.Search.QueryParameters(request.SearchTerm)
-                        {
-                            Types = new() { Bgg.Sdk.Core.ThingType.Boardgame, Bgg.Sdk.Core.ThingType.BoardgameExpansion }
-                        };
+                              var query = new Bgg.Sdk.Core.Search.QueryParameters(request.SearchTerm)
+                              {
+                                  Types = new() { Bgg.Sdk.Core.ThingType.Boardgame, Bgg.Sdk.Core.ThingType.BoardgameExpansion }
+                              };
 
-                        var results =  await _bggClient.SearchAsync(query);
-                        return results.Items.DistinctBy(i => i.Id).ToList();
-                    });
+                              var results = await _bggClient.SearchAsync(query);
+                              return results.Items.DistinctBy(i => i.Id).ToList();
+                          });
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error searching for {SearchTerm} on BGG", request.SearchTerm);   
+                        throw;
+                    }
                 });
             }
         }
