@@ -64,9 +64,9 @@ namespace Hermod.Core.Features.Share
                 var recipients = await _hermodContext
                     .Users
                     .Where(u => u.SubscribeToPlays)
-                    //.Where(u => players.Contains(u.NormalizedBggUsername))
                     .Where(u => u.DiscordId != request.Sender)
-                    .IntersectBy(players, u => u.NormalizedBggUsername)
+                    .Where(u => players.Contains(u.NormalizedBggUsername))
+                    //.IntersectBy(players, u => u.NormalizedBggUsername)
                     .Select(u => u.DiscordId)
                     .Distinct()
                     .ToListAsync(cancellationToken);
