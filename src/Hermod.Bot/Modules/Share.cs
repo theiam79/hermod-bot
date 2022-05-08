@@ -80,8 +80,7 @@ namespace Hermod.Bot.Modules
             }
             catch (Exception ex)
             {
-
-                throw;
+                _logger.LogError(ex, "Something went wrong wen attempting to share {PlayFile}", file.Filename);
             }
 
             bool Predicate(SocketMessage message) => FromSourceUser(message) && HasPhotoAttachment(message);
