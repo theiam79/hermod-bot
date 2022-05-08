@@ -14,8 +14,8 @@ namespace Hermod.BGstats
         public Play MapToPlay()
         {
             var play = Plays.FirstOrDefault() ?? throw new IndexOutOfRangeException();
-            var location = Locations.FirstOrDefault() ?? throw new IndexOutOfRangeException();
-            var game = Games.FirstOrDefault(g => g.IsBaseGame) ?? throw new IndexOutOfRangeException();
+            var location = Locations.FirstOrDefault(l => l.Id == play.LocationRefId) ?? throw new IndexOutOfRangeException();
+            var game = Games.FirstOrDefault(g => g.Id == play.GameRefId) ?? throw new IndexOutOfRangeException();
 
             return new Play
             {
@@ -60,7 +60,7 @@ namespace Hermod.BGstats
                     MaxPlayTime = TimeSpan.FromMinutes(game.MaxPlayTime),
                     MinAge = game.MinAge,
                     Expansions = Games
-                        .Where(g => !g.IsBaseGame)
+                        //.Where(g => !g.IsBaseGame)
                         .Where(g => g.Id != game.Id)
                         .Select(g => new Expansion
                         {
