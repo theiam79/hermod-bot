@@ -250,11 +250,11 @@ namespace Hermod.Core.Features.Share
                     descriptionItems.Add(Format.Bold("Ignored for stats"));
                 }
 
-                var shareLink = play.CreateShareLink();
-                if (!string.IsNullOrWhiteSpace(shareLink))
-                {
-                    descriptionItems.Add(Format.Url("Import", shareLink));
-                }
+                //var shareLink = play.CreateShareLink();
+                //if (!string.IsNullOrWhiteSpace(shareLink))
+                //{
+                //    descriptionItems.Add(Format.Url("Import", shareLink));
+                //}
 
                 var sb = new StringBuilder();
                 return sb.AppendJoin(" - ", descriptionItems).ToString();
