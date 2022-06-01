@@ -77,15 +77,21 @@ namespace Hermod.Core.Features.Share
                 }
 
                 var sourceStream = await _httpClient.GetStreamAsync(request.PlayFile.Url, cancellationToken);
-                var memoryStream = new MemoryStream();
-                await sourceStream.CopyToAsync(memoryStream, cancellationToken);
+                var primaryStream = new MemoryStream();
+                await sourceStream.CopyToAsync(primaryStream, cancellationToken);
 
                 var client = new DiscordSocketClient();
                 List<Result> results = new(recipients.Count);
                 foreach (var user in recipients)
                 {
-                    memoryStream.Seek(0, SeekOrigin.Begin);
-                    results.Add(await ShareWithPlayer(user, request.PlayFile.Filename, memoryStream));
+                    primaryStream.Seek(0, SeekOrigin.Begin);
+
+                    //SendFileAsync disposes of the stream so we have to make a copy of the copy
+                    using var copiedStream = new MemoryStream();
+                    await primaryStream.CopyToAsync(copiedStream, cancellationToken);
+                    copiedStream.Seek(0, SeekOrigin.Begin);
+
+                    results.Add(await ShareWithPlayer(user, request.PlayFile.Filename, copiedStream));
                 }
 
                 return Result.Merge(results.ToArray());
