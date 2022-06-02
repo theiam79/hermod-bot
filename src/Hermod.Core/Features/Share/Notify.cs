@@ -31,13 +31,13 @@ namespace Hermod.Core.Features.Share
 
         public class Handler : IRequestHandler<Command, Result>
         {
-            private readonly HermodContext _hermodContext;
+            private readonly IDbContextFactory<HermodContext> _contextFactory;
             private readonly HttpClient _httpClient;
             private readonly DiscordSocketClient _discordSocketClient;
 
-            public Handler(HermodContext hermodContext, HttpClient httpClient, DiscordSocketClient discordSocketClient)
+            public Handler(IDbContextFactory<HermodContext> contextFactory, HttpClient httpClient, DiscordSocketClient discordSocketClient)
             {
-                _hermodContext = hermodContext;
+                _contextFactory = contextFactory;
                 _httpClient = httpClient;
                 _discordSocketClient = discordSocketClient;
             }
@@ -61,7 +61,9 @@ namespace Hermod.Core.Features.Share
                 
                 var players = playFile.Players.Select(p => p.BggUsername.Trim().ToUpper()).ToList();
 
-                var recipients = await _hermodContext
+                using var context = _contextFactory.CreateDbContext();
+
+                var recipients = await context
                     .Users
                     .Where(u => u.SubscribeToPlays)
                     .Where(u => u.DiscordId != request.Sender)

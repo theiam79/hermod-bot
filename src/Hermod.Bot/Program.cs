@@ -27,6 +27,7 @@ IHost host = Host.CreateDefaultBuilder(args)
         services.AddHermod();
         //services.AddDbContext<HermodContext>(o => o.UseInMemoryDatabase("temp-testing"));
         services.AddDbContext<HermodContext>(o => o.UseSqlite("FileName=./data/Hermod.db"));
+        services.AddDbContextFactory<HermodContext>(o => o.UseSqlite("FileName=./data/Hermod.db"));
     })
     .UseSerilog((context, services, config) =>
     {

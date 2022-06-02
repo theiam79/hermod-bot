@@ -45,14 +45,14 @@ namespace Hermod.Core.Features.Share
 
         public class Handler : IRequestHandler<Command, Result>
         {
-            private readonly HermodContext _hermodContext;
+            private readonly IDbContextFactory<HermodContext> _contextFactory;
             private readonly HttpClient _httpClient;
             private readonly ILogger<Handler> _logger;
             private readonly DiscordSocketClient _discordSocketClient;
 
-            public Handler(HermodContext hermodContext, HttpClient httpClient, ILogger<Handler> logger, DiscordSocketClient discordSocketClient)
+            public Handler(IDbContextFactory<HermodContext> contextFactory, HttpClient httpClient, ILogger<Handler> logger, DiscordSocketClient discordSocketClient)
             {
-                _hermodContext = hermodContext;
+                _contextFactory = contextFactory;
                 _httpClient = httpClient;
                 _logger = logger;
                 _discordSocketClient = discordSocketClient;
@@ -60,7 +60,8 @@ namespace Hermod.Core.Features.Share
 
             public async Task<Result> Handle(Command request, CancellationToken cancellationToken)
             {
-                var targets = await _hermodContext
+                using var context = _contextFactory.CreateDbContext();
+                var targets = await context
                     .Guilds
                     .Where(g => g.AllowSharing)
                     .Where(g => g.Users.Any(u => u.DiscordId == request.Sender))
