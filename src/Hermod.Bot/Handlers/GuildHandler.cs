@@ -25,6 +25,7 @@ namespace Hermod.Bot
 
             var command = new Core.Features.Guild.RegisterAll.Command
             {
+                //default channel isn't reliable, need to use own logic
                 Guilds = Client.Guilds.Select(g => (g.Id, g.DefaultChannel.Id)).ToList()
             };
 
