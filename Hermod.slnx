@@ -1,9 +1,19 @@
 <Solution>
-  <Folder Name="/Sample/">
-    <Project Path="exclude/Hermod.Testing/Hermod.Testing.csproj" />
+  <Folder Name="/src/">
+    <Project Path="src/Hermod.AppHost/Hermod.AppHost.csproj" />
+    <Project Path="src/Hermod.ServiceDefaults/Hermod.ServiceDefaults.csproj" />
+    <Project Path="src/Hermod.BGStats/Hermod.BGStats.csproj" />
+    <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
+    <Project Path="src/Hermod.Core/Hermod.Core.csproj" />
+    <Project Path="src/Hermod.Api/Hermod.Api.csproj" />
   </Folder>
-  <Project Path="src/Hermod.BGstats/Hermod.BGstats.csproj" />
-  <Project Path="src/Hermod.Bot/Hermod.Bot.csproj" />
-  <Project Path="src/Hermod.Core/Hermod.Core.csproj" />
-  <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
+  <Folder Name="/tests/">
+    <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />
+  </Folder>
+  <Folder Name="/legacy/">
+    <Project Path="legacy/Hermod.BGstats/Hermod.BGstats.csproj" />
+    <Project Path="legacy/Hermod.Bot/Hermod.Bot.csproj" />
+    <Project Path="legacy/Hermod.Core/Hermod.Core.csproj" />
+    <Project Path="legacy/Hermod.Data/Hermod.Data.csproj" />
+  </Folder>
 </Solution>

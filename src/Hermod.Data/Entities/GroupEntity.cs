@@ -1,0 +1,12 @@
+namespace Hermod.Data.Entities;
+
+public class GroupEntity
+{
+    public GroupId Id { get; set; }
+    public required string Name { get; set; }
+    public ulong? DiscordGuildId { get; set; }
+    public ulong? DiscordPostChannelId { get; set; }
+    public bool AllowSharing { get; set; } = true;
+
+    public List<UserGroupEntity> UserGroups { get; set; } = [];
+}
