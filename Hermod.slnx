@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/Sample/">
+    <Project Path="exclude/Hermod.Testing/Hermod.Testing.csproj" />
+  </Folder>
+  <Project Path="src/Hermod.BGstats/Hermod.BGstats.csproj" />
+  <Project Path="src/Hermod.Bot/Hermod.Bot.csproj" />
+  <Project Path="src/Hermod.Core/Hermod.Core.csproj" />
+  <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
+</Solution>
