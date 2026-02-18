@@ -1,6 +1,10 @@
-using Hermod.Core.Extensions;
+using Hermod.Api.Auth;
 using Hermod.Data;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.EntityFrameworkCore;
+using Wolverine;
+using Wolverine.EntityFrameworkCore;
+using Wolverine.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,10 +12,18 @@ builder.AddServiceDefaults();
 
 builder.Services.AddOpenApi();
 
-builder.Services.AddDbContextFactory<HermodContext>(options =>
+builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db"));
 
-builder.Services.AddHermodCore();
+builder.Services.AddAuthentication(ApiKeyDefaults.AuthenticationScheme)
+    .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(ApiKeyDefaults.AuthenticationScheme, null);
+builder.Services.AddAuthorization();
+
+builder.Host.UseWolverine(opts =>
+{
+    opts.UseEntityFrameworkCoreTransactions();
+    opts.Policies.AutoApplyTransactions();
+});
 
 var app = builder.Build();
 
@@ -22,13 +34,16 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
-app.MapGet("/", () => Results.Ok(new { Name = "Hermod API", Status = "Running" }));
+app.UseAuthentication();
+app.UseAuthorization();
 
-// Ensure database is created
+app.MapWolverineEndpoints();
+
+// Apply migrations
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<HermodContext>();
-    await context.Database.EnsureCreatedAsync();
+    await context.Database.MigrateAsync();
 }
 
 app.Run();

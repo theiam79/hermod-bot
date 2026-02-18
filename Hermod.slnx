@@ -4,8 +4,8 @@
     <Project Path="src/Hermod.ServiceDefaults/Hermod.ServiceDefaults.csproj" />
     <Project Path="src/Hermod.BGStats/Hermod.BGStats.csproj" />
     <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
-    <Project Path="src/Hermod.Core/Hermod.Core.csproj" />
     <Project Path="src/Hermod.Api/Hermod.Api.csproj" />
+    <Project Path="src/Hermod.Contracts/Hermod.Contracts.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />

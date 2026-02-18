@@ -1,35 +1,29 @@
 using Hermod.BGStats;
-using Hermod.BGStats.Models;
-using Hermod.Core.Mappers;
-using Hermod.Core.Models;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hermod.Core.Services;
+namespace Hermod.Api.Handlers;
 
-public class PlayService(IDbContextFactory<HermodContext> contextFactory)
+public static class UploadPlaysHandler
 {
-    public async Task<List<PlaySummary>> UploadPlaysAsync(
-        Stream fileStream,
-        UserId uploadedById,
-        GroupId? groupId,
-        string? imageUrl,
-        CancellationToken ct = default)
+    public static async Task<List<PlayEntity>> Handle(
+        UploadPlaysCommand command,
+        HermodContext db,
+        CancellationToken ct)
     {
-        var result = await PlayFileParser.ParseAsync(fileStream, ct);
-        var rawJson = await ReadStreamAsStringAsync(fileStream, ct);
+        var result = await PlayFileParser.ParseAsync(command.FileStream, ct);
+        var rawJson = await ReadStreamAsStringAsync(command.FileStream, ct);
 
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
-        var summaries = new List<PlaySummary>();
+        var entities = new List<PlayEntity>();
 
         foreach (var play in result.Plays)
         {
             var entity = new PlayEntity
             {
                 Id = PlayId.From(Guid.NewGuid()),
-                UploadedById = uploadedById,
-                GroupId = groupId,
+                UploadedById = command.UploadedById,
+                GroupId = command.GroupId,
                 BgStatsPlayUuid = play.Uuid.ToString(),
                 GameName = play.Game.Name,
                 BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null,
@@ -40,7 +34,7 @@ public class PlayService(IDbContextFactory<HermodContext> contextFactory)
                 Rounds = play.Rounds > 0 ? play.Rounds : null,
                 Comments = play.Comments,
                 RawPlayFileJson = rawJson,
-                ImageUrl = imageUrl,
+                ImageUrl = command.ImageUrl,
                 CreatedAt = DateTime.UtcNow,
                 Players = play.Scores.Select(s => new PlayPlayerEntity
                 {
@@ -58,59 +52,22 @@ public class PlayService(IDbContextFactory<HermodContext> contextFactory)
                 }).ToList(),
             };
 
-            // Resolve player mappings
-            await ResolvePlayerMappingsAsync(context, uploadedById, entity.Players, ct);
-
-            context.Plays.Add(entity);
-            summaries.Add(PlayMapper.ToSummary(entity));
+            await ResolvePlayerMappingsAsync(db, command.UploadedById, entity.Players, ct);
+            db.Plays.Add(entity);
+            entities.Add(entity);
         }
 
-        await context.SaveChangesAsync(ct);
-        return summaries;
-    }
-
-    public async Task<PlaySummary?> GetPlayAsync(PlayId id, CancellationToken ct = default)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
-        var entity = await context.Plays
-            .Include(p => p.Players)
-            .FirstOrDefaultAsync(p => p.Id == id, ct);
-
-        return entity is null ? null : PlayMapper.ToSummary(entity);
-    }
-
-    public async Task<List<PlaySummary>> GetPlaysForGroupAsync(GroupId groupId, CancellationToken ct = default)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
-        var entities = await context.Plays
-            .Include(p => p.Players)
-            .Where(p => p.GroupId == groupId)
-            .OrderByDescending(p => p.DatePlayed)
-            .ToListAsync(ct);
-
-        return entities.Select(PlayMapper.ToSummary).ToList();
-    }
-
-    public async Task<List<PlaySummary>> GetPlaysForUserAsync(UserId userId, CancellationToken ct = default)
-    {
-        await using var context = await contextFactory.CreateDbContextAsync(ct);
-        var entities = await context.Plays
-            .Include(p => p.Players)
-            .Where(p => p.UploadedById == userId)
-            .OrderByDescending(p => p.DatePlayed)
-            .ToListAsync(ct);
-
-        return entities.Select(PlayMapper.ToSummary).ToList();
+        return entities;
     }
 
     private static async Task ResolvePlayerMappingsAsync(
-        HermodContext context,
+        HermodContext db,
         UserId ownerId,
         List<PlayPlayerEntity> players,
         CancellationToken ct)
     {
         var playerUuids = players.Select(p => p.BgStatsPlayerUuid).ToList();
-        var mappings = await context.PlayerMappings
+        var mappings = await db.PlayerMappings
             .Where(pm => pm.OwnerUserId == ownerId && playerUuids.Contains(pm.BgStatsPlayerUuid))
             .ToDictionaryAsync(pm => pm.BgStatsPlayerUuid, pm => pm.MappedUserId, ct);
 

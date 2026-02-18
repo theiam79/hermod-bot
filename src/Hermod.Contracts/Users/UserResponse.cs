@@ -1,10 +1,8 @@
-using Hermod.Data;
+namespace Hermod.Contracts.Users;
 
-namespace Hermod.Core.Models;
-
-public sealed record UserProfile
+public sealed record UserResponse
 {
-    public required UserId Id { get; init; }
+    public required Guid Id { get; init; }
     public required string DisplayName { get; init; }
     public ulong? DiscordId { get; init; }
     public int? BggId { get; init; }
