@@ -456,4 +456,5 @@ $RECYCLE.BIN/
 *.db-shm
 *.db-wal
 sample-play-files/
-.claude/
+.claude/*
+!.claude/skills/
