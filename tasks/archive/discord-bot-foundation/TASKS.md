@@ -9,11 +9,11 @@ to. This is the foundation every Discord-facing feature depends on.
 
 | ID | Task | Status | Depends On |
 |----|------|--------|------------|
-| 01 | [Add Discord.Net packages and config](task-01-packages-and-config.md) | Open | — |
-| 02 | [Register Discord client in DI](task-02-register-discord-client.md) | Open | 01 |
-| 03 | [BotService — connection and logging](task-03-bot-service.md) | Open | 02 |
-| 04 | [InteractionHandler — slash command routing](task-04-interaction-handler.md) | Open | 03 |
-| 05 | [GuildHandler — guild sync](task-05-guild-handler.md) | Open | 03 |
+| 01 | [Add Discord.Net packages and config](task-01-packages-and-config.md) | Completed | — |
+| 02 | [Register Discord client in DI](task-02-register-discord-client.md) | Completed | 01 |
+| 03 | [BotService — connection and logging](task-03-bot-service.md) | Completed | 02 |
+| 04 | [InteractionHandler — slash command routing](task-04-interaction-handler.md) | Completed | 03 |
+| 05 | [GuildHandler — guild sync](task-05-guild-handler.md) | Completed | 03 |
 
 ## Dependency Graph
 

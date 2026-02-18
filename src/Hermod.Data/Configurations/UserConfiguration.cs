@@ -14,7 +14,5 @@ public class UserConfiguration : IEntityTypeConfiguration<UserEntity>
 
         builder.Property(u => u.DisplayName).IsRequired().HasMaxLength(200);
         builder.Property(u => u.BggUsername).HasMaxLength(200);
-
-        builder.HasIndex(u => u.DiscordId).IsUnique().HasFilter("DiscordId IS NOT NULL");
     }
 }

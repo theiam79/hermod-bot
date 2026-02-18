@@ -1,3 +1,8 @@
+using Discord;
+using Discord.Addons.Hosting;
+using Discord.Interactions;
+using Discord.WebSocket;
+using Hermod.Api.Discord;
 using Hermod.Data;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
@@ -12,6 +17,31 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db"));
+
+builder.Host
+    .ConfigureDiscordHost((context, config) =>
+    {
+        config.Token = context.Configuration["Discord:Token"]
+            ?? throw new InvalidOperationException("Discord:Token is not configured.");
+        config.SocketConfig = new DiscordSocketConfig
+        {
+            AlwaysDownloadUsers = true,
+            MessageCacheSize = 200,
+            GatewayIntents =
+                GatewayIntents.Guilds |
+                GatewayIntents.GuildMembers |   // privileged — enable in Discord dev portal
+                GatewayIntents.GuildMessages
+        };
+    })
+    .UseInteractionService((context, config) =>
+    {
+        config.LogLevel = LogSeverity.Info;
+        config.UseCompiledLambda = true;
+    });
+
+builder.Services.AddHostedService<BotService>();
+builder.Services.AddHostedService<InteractionHandler>();
+builder.Services.AddHostedService<GuildHandler>();
 
 builder.Host.UseWolverine(opts =>
 {

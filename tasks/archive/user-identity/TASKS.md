@@ -10,10 +10,10 @@ lookup into the play upload flow so uploads can be attributed to a user.
 
 | ID | Task | Status | Depends On |
 |----|------|--------|------------|
-| 01 | [Add UserExternalLoginEntity](task-01-add-external-login-entity.md) | Open | — |
-| 02 | [Remove UserEntity.DiscordId](task-02-remove-discord-id.md) | Open | — |
-| 03 | [Add EF migration](task-03-ef-migration.md) | Open | 01, 02 |
-| 04 | [Wire sender identity into upload flow](task-04-wire-sender-identity.md) | Open | 03 |
+| 01 | [Add UserExternalLoginEntity](task-01-add-external-login-entity.md) | Completed | — |
+| 02 | [Remove UserEntity.DiscordId](task-02-remove-discord-id.md) | Completed | — |
+| 03 | [Add EF migration](task-03-ef-migration.md) | Completed | 01, 02 |
+| 04 | [Wire sender identity into upload flow](task-04-wire-sender-identity.md) | Completed | 03 |
 
 ## Dependency Graph
 

@@ -12,7 +12,8 @@ public static class UploadPlays
     [WolverinePost("/api/plays/upload")]
     public static async Task<(IResult, OutgoingMessages)> Post(
         IFormFile file,
-        [FromQuery] Guid? groupId)
+        [FromQuery] Guid? groupId,
+        [FromQuery] string? senderDiscordId)
     {
         await using var stream = file.OpenReadStream();
         var result = await PlayFileParser.ParseAsync(stream);
@@ -20,7 +21,7 @@ public static class UploadPlays
         var messages = new OutgoingMessages();
         foreach (var play in result.Plays)
         {
-            messages.Add(new PlayExtracted(play, groupId));
+            messages.Add(new PlayExtracted(play, groupId, senderDiscordId));
         }
 
         return (Results.Accepted(), messages);
