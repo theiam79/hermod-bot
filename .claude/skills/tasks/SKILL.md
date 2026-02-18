@@ -130,6 +130,5 @@ index reflects its completion.
    - Remove the batch from the **Active Batches** table (or mark it `Complete`)
    - Add it to the **Archive** table with a one-line description of what it accomplished
 
-4. Commit with message: `Archive <batch-name> tasks`
-
 **Do not delete task files** — they move to the archive, not the trash.
+The archive and any implementation changes are committed together, not as a separate commit.

@@ -6,7 +6,6 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 
 - **Repo**: `/mnt/data/repos/hermod-bot`
 - **Architecture doc**: `docs/architecture.md`
-- **Plan file**: See Claude Code plan mode
 
 ## Stack
 
@@ -15,9 +14,10 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
   - Aspire CLI daily builds installed at `~/.aspire/bin/aspire`
 - **Wolverine.Fx** for command/handler pattern and HTTP endpoint routing
   - `WolverineFx.Http` replaces raw Minimal API `MapGet`/`MapPost` for endpoint routing
+  - `AutoApplyTransactions()` + `UseEntityFrameworkCoreTransactions()` for unit-of-work
   - Start with HTTP only; async messaging transport added later
 - **EF Core + SQLite** for data access
-- **Discord.Net** for the bot (Worker Service)
+- **Discord.Net 3.x + Discord.Addons.Hosting 5.x** — bot hosted services colocated inside Hermod.Api
 - **Vite + React + TypeScript** for the web frontend (planned)
 - **TUnit** for testing (NOT xUnit/NUnit/MSTest)
 
@@ -29,9 +29,10 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 | **WolverineFx.Http** (5.x) | HTTP endpoint routing + command/handler pattern | Replaces raw Minimal API routing |
 | **Mapperly** (4.x) | Source-generated object mapping | `PrivateAssets="all"` in csproj |
 | **NCalcSync** (5.3.0) | Score expression evaluation | Note: version 5.2.12 does not exist on NuGet |
-| **Discord.Net** | Discord bot framework | — |
+| **Discord.Net** (3.x) | Discord bot framework | — |
+| **Discord.Addons.Hosting** (5.x) | DI/lifecycle wiring for Discord.Net | `DiscordClientService` base class; `ConfigureDiscordHost` / `UseInteractionService` |
 | **TUnit** | Testing framework | `OutputType=Exe`, no `Microsoft.NET.Test.Sdk` needed |
-| **AspNet.Security.OAuth.Discord** | Discord OAuth provider | For user authentication |
+| **AspNet.Security.OAuth.Discord** | Discord OAuth provider | For user authentication (Phase 4) |
 
 ## What We Do NOT Use
 
@@ -40,6 +41,7 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 - No FluentValidation
 - No FluentResults
 - No xUnit/NUnit/MSTest (use TUnit)
+- No separate Hermod.Bot project (bot is colocated in Hermod.Api)
 
 ## Solution Structure
 
@@ -48,26 +50,29 @@ Hermod.slnx
 ├── src/
 │   ├── Hermod.AppHost/          # Aspire orchestrator
 │   ├── Hermod.ServiceDefaults/  # Shared Aspire config
-│   ├── Hermod.Api/              # ASP.NET Minimal API (single data gateway)
-│   ├── Hermod.Bot/              # Discord bot (thin client, calls API over HTTP)
-│   ├── Hermod.Web/              # Vite + React SPA (planned)
-│   ├── Hermod.Contracts/        # Shared DTOs + typed HttpClient (planned)
-│   ├── Hermod.Core/             # Business logic (only referenced by API)
-│   ├── Hermod.Data/             # EF Core entities, DbContext, config
-│   └── Hermod.BGStats/          # .bgsplay file parsing (standalone)
+│   ├── Hermod.Api/              # ASP.NET API — data gateway + Discord bot (colocated)
+│   │   ├── Discord/             # Discord hosted services
+│   │   │   ├── BotService.cs        # Connects bot, bridges Client.Log
+│   │   │   ├── GuildHandler.cs      # Upserts GroupEntity on guild join/ready
+│   │   │   ├── InteractionHandler.cs # Registers and dispatches slash commands
+│   │   │   ├── MessageReceivedHandler.cs # Handles .bgsplay file uploads
+│   │   │   └── Modules/             # Slash command modules (InfoModule, InfoModule.Admin)
+│   │   ├── Endpoints/           # Wolverine HTTP endpoint handlers
+│   │   ├── Handlers/            # Wolverine message handlers
+│   │   └── Messages/            # Wolverine message/event records
+│   ├── Hermod.Data/             # EF Core entities, DbContext, config, migrations
+│   └── Hermod.BGStats/          # .bgsplay file parsing (standalone, no DI)
 ├── tests/
 │   └── Hermod.BGStats.Tests/    # TUnit tests for parsing
-├── legacy/                      # Old .NET 6 code (reference only)
+├── legacy/                      # Old .NET 6 code (reference only, do not modify)
 └── sample-play-files/           # Test data (gitignored)
 ```
 
 ## Architecture Rules
 
-- **Bot calls API over HTTP** — it does NOT reference Core or Data directly
-- **API is the single data gateway** — Core and Data only live in the API process
-- **Bot → API auth**: Pre-shared API key via Aspire parameters
-- **User → API auth**: HttpOnly cookie sessions via Discord OAuth (BFF pattern)
-- **Contracts project** uses plain `Guid` for IDs (not Vogen) to avoid coupling clients
+- **Bot is colocated in Hermod.Api** — Discord hosted services run in the same process as the API
+- **API is the single data gateway** — only Hermod.Api references Hermod.Data
+- **User → API auth**: HttpOnly cookie sessions via Discord OAuth (BFF pattern, Phase 4)
 - **BGStats** is a standalone parsing library with no framework dependencies
 
 ## Testing
@@ -82,14 +87,17 @@ Hermod.slnx
 
 ```bash
 # Build entire solution
-dotnet build Hermod.slnx
+dotnet build Hermod.slnx -verbosity:quiet
 
-# Run with Aspire
+# Run with Aspire (requires Discord:Token in user secrets — see Known Gotchas)
 ~/.aspire/bin/aspire run --project src/Hermod.AppHost/Hermod.AppHost.csproj
 
 # Run tests
 dotnet test Hermod.slnx
 ```
+
+**Build note**: Do NOT use `--no-incremental`. It can leave corrupted nested `bin/` directories.
+If a build leaves unexpected state, delete `bin/` and `obj/` manually and rebuild.
 
 ## Known Gotchas
 
@@ -97,14 +105,24 @@ dotnet test Hermod.slnx
 - **NCalcSync 5.2.12**: Does not exist on NuGet. Use 5.3.0.
 - **Sandbox restrictions**: `dotnet new` may fail if HOME is not writable.
 - **Aspire CLI**: Logs a warning about read-only filesystem for log files — harmless.
-- **SQLite single-writer**: This is why the Bot goes through the API instead of accessing the DB directly.
+- **SQLite single-writer**: Data access is centralised in Hermod.Api to avoid write contention.
+- **Windows-artifact bin\Debug directories**: On Linux, a folder literally named `bin\Debug` (backslash) can appear from Windows-generated build output. Not caught by `[Bb]in/` gitignore; covered by `*\\*`. Delete them if they appear.
+- **Discord privileged intents**: `GatewayIntents.GuildMembers` and `GatewayIntents.MessageContent` must be enabled in the Discord Developer Portal under Bot → Privileged Gateway Intents. Without `MessageContent`, `message.Attachments` is always empty.
+- **`global::Discord.Interactions.IResult`**: Within the `Hermod.Api.Discord` namespace, `IResult` is ambiguous with `Microsoft.AspNetCore.Http.IResult`. Use the fully-qualified form `global::Discord.Interactions.IResult`.
+- **Discord token config**: The Aspire AppHost passes `Discord:Token` as the environment variable `Discord__Token` to Hermod.Api. Set it via user secrets on the AppHost project:
+  ```bash
+  dotnet user-secrets set "Parameters:discord-token" "<your-token>" --project src/Hermod.AppHost
+  ```
 
 ## Conventions
 
 - Use `record` types for DTOs and immutable models
-- Use Vogen value objects for all entity IDs in the Data/Core layers; plain `Guid` in Contracts
-- Use Mapperly for entity ↔ domain model ↔ DTO mapping (source-generated, not reflection)
-- Wolverine endpoint organization: one static class per resource in `Endpoints/` directory using `[WolverineGet]`/`[WolverinePost]` etc.
-- Services registered as scoped via `AddHermodCore()` extension method
+- Use Vogen value objects for all entity IDs in Hermod.Data; plain `Guid` in any future Contracts layer
+- Use Mapperly for entity ↔ DTO mapping (source-generated, not reflection)
+- Wolverine endpoint organization: one static class per resource in `Endpoints/` using `[WolverineGet]`/`[WolverinePost]` etc.
 - EF Core fluent configuration in `Configurations/` directory (one file per entity)
 - EF Core migrations for schema changes (not `EnsureCreatedAsync`)
+- **Wolverine message cascade**: handlers return the next message type (or `T?` for conditional dispatch — returning `null` skips the cascade)
+- **Discord modules**: use `partial class` to split a slash command group across files (e.g. `InfoModule.cs` + `InfoModule.Admin.cs`) to avoid Discord.Net group registration conflicts
+- **Singleton Discord services needing scoped services**: inject `IServiceScopeFactory`, create a scope per operation with `await using var scope = _scopeFactory.CreateAsyncScope()`
+- **Wolverine handlers are static**: all dependencies injected as method parameters; no instance state
