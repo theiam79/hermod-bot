@@ -21,7 +21,7 @@ public static class UploadPlays
         var messages = new OutgoingMessages();
         foreach (var play in result.Plays)
         {
-            messages.Add(new PlayExtracted(play, groupId, senderDiscordId));
+            messages.Add(new PlayExtracted(play, groupId, senderDiscordId, result.MePlayerUuid));
         }
 
         return (Results.Accepted(), messages);

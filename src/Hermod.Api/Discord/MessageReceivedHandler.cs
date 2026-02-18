@@ -73,7 +73,7 @@ public class MessageReceivedHandler(
 
                     foreach (var play in result.Plays)
                     {
-                        await bus.PublishAsync(new PlayExtracted(play, groupId, senderDiscordId));
+                        await bus.PublishAsync(new PlayExtracted(play, groupId, senderDiscordId, result.MePlayerUuid));
                     }
 
                     logger.LogInformation(

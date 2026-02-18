@@ -30,10 +30,12 @@ public static class PlayFileParser
             ?? throw new InvalidOperationException("Failed to deserialize .bgsplay file.");
 
         var plays = file.Plays.Select(p => MapPlay(file, p)).ToList();
+        var mePlayerUuid = ResolveMePlayerUuid(file);
 
         return new PlayFileResult
         {
             MeRefId = file.UserInfo.MeRefId,
+            MePlayerUuid = mePlayerUuid,
             Plays = plays,
         };
     }
@@ -47,12 +49,20 @@ public static class PlayFileParser
             ?? throw new InvalidOperationException("Failed to deserialize .bgsplay file.");
 
         var plays = file.Plays.Select(p => MapPlay(file, p)).ToList();
+        var mePlayerUuid = ResolveMePlayerUuid(file);
 
         return new PlayFileResult
         {
             MeRefId = file.UserInfo.MeRefId,
+            MePlayerUuid = mePlayerUuid,
             Plays = plays,
         };
+    }
+
+    private static Guid? ResolveMePlayerUuid(PlayFile file)
+    {
+        var mePlayer = file.Players.FirstOrDefault(p => p.Id == file.UserInfo.MeRefId);
+        return mePlayer?.Uuid;
     }
 
     private static Play MapPlay(PlayFile file, PlayFile.PlaySection playSection)
@@ -170,5 +180,6 @@ public static class PlayFileParser
 public sealed record PlayFileResult
 {
     public int MeRefId { get; init; }
+    public Guid? MePlayerUuid { get; init; }
     public required List<Play> Plays { get; init; }
 }

@@ -18,6 +18,24 @@ public static class PlayExtractedHandler
             uploadedById = await FindOrCreateUserAsync(db, message.SenderDiscordId);
         }
 
+        // Auto-link uploader via MePlayerUuid
+        if (uploadedById is not null && message.MePlayerUuid is { } meUuid)
+        {
+            var meUuidStr = meUuid.ToString();
+            var exists = await db.PlayerMappings
+                .AnyAsync(pm => pm.BgStatsPlayerUuid == meUuidStr && pm.MappedUserId == uploadedById.Value);
+
+            if (!exists)
+            {
+                db.PlayerMappings.Add(new PlayerMappingEntity
+                {
+                    Id = PlayerMappingId.From(Guid.NewGuid()),
+                    BgStatsPlayerUuid = meUuidStr,
+                    MappedUserId = uploadedById.Value,
+                });
+            }
+        }
+
         var entity = new PlayEntity
         {
             Id = PlayId.From(Guid.NewGuid()),
@@ -50,6 +68,27 @@ public static class PlayExtractedHandler
         };
 
         db.Plays.Add(entity);
+
+        // Resolve MappedUserId on players from existing PlayerMappings
+        var playerUuids = entity.Players.Select(p => p.BgStatsPlayerUuid).ToList();
+        var mappings = await db.PlayerMappings
+            .Where(pm => playerUuids.Contains(pm.BgStatsPlayerUuid))
+            .ToListAsync();
+
+        if (mappings.Count > 0)
+        {
+            var mappingLookup = mappings
+                .GroupBy(m => m.BgStatsPlayerUuid)
+                .ToDictionary(g => g.Key, g => g.First().MappedUserId);
+
+            foreach (var player in entity.Players)
+            {
+                if (player.MappedUserId is null && mappingLookup.TryGetValue(player.BgStatsPlayerUuid, out var userId))
+                {
+                    player.MappedUserId = userId;
+                }
+            }
+        }
 
         return new PlayCreated(entity.Id.Value, message.GroupId);
     }
