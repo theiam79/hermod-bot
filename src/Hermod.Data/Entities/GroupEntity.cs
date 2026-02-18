@@ -6,7 +6,7 @@ public class GroupEntity
     public required string Name { get; set; }
     public ulong? DiscordGuildId { get; set; }
     public ulong? DiscordPostChannelId { get; set; }
-    public bool AllowSharing { get; set; } = true;
+    public bool AllowSharing { get; set; } = false;
 
     public List<UserGroupEntity> UserGroups { get; set; } = [];
 }
