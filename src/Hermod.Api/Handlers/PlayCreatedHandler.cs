@@ -5,11 +5,14 @@ namespace Hermod.Api.Handlers;
 
 public static class PlayCreatedHandler
 {
-    public static void Handle(PlayCreated message, ILogger logger)
+    public static PostPlay? Handle(PlayCreated message, ILogger logger)
     {
-        logger.LogInformation(
-            "Play {PlayId} created in group {GroupId}",
-            message.PlayId,
-            message.GroupId);
+        logger.LogInformation("Play {PlayId} created for group {GroupId}",
+            message.PlayId, message.GroupId);
+
+        if (!message.GroupId.HasValue)
+            return null;   // no group context — skip posting
+
+        return new PostPlay(message.PlayId, message.GroupId.Value);
     }
 }

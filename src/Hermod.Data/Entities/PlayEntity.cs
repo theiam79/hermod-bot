@@ -20,4 +20,5 @@ public class PlayEntity
     public UserEntity? UploadedBy { get; set; }
     public GroupEntity? Group { get; set; }
     public List<PlayPlayerEntity> Players { get; set; } = [];
+    public List<PlayPostEntity> Posts { get; set; } = [];
 }

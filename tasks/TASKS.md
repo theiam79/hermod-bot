@@ -4,7 +4,7 @@
 
 | Batch | Description | Status |
 |-------|-------------|--------|
-| [play-embed-posting](play-embed-posting/) | Post Discord embeds when plays are created in sharing-enabled groups; track posted messages in PlayPosts | Planned |
+| *(none)* | | |
 
 ## Deferred (Design TBD)
 
@@ -18,6 +18,7 @@
 
 | Batch | Description |
 |-------|-------------|
+| [play-embed-posting](archive/play-embed-posting/) | Post Discord embeds when plays are created in sharing-enabled groups; track posted messages in PlayPosts |
 | [group-setup](archive/group-setup/) | Slash commands for server admins to configure sharing, post channel, and spam threshold |
 | [discord-message-handler](archive/discord-message-handler/) | Process .bgsplay attachments dropped in Discord channels; react ✅ and dispatch through Wolverine pipeline |
 | [user-identity](archive/user-identity/) | Replace UserEntity.DiscordId with UserExternalLoginEntity table; wire find-or-create into upload flow |

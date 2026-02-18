@@ -19,3 +19,6 @@ public readonly partial struct PlayPlayerId;
 
 [ValueObject<Guid>]
 public readonly partial struct PlayerMappingId;
+
+[ValueObject<Guid>]
+public readonly partial struct PlayPostId;
