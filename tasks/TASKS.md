@@ -1,8 +1,8 @@
 # Task Tracker
 
-## Open Tasks
+## Active Batches
 
-_No open tasks._
+_No active batches._
 
 ## Archive
 

@@ -1,7 +1,7 @@
 ---
 name: tasks
-description: Plan and manage work as a series of task files in the tasks/ directory. Use for breaking down a feature or refactor into independently implementable tasks with sequencing and acceptance criteria. Supports plan and archive subcommands.
-argument-hint: "plan [description] | archive [batch-name]"
+description: Plan and manage work as a series of task files in the tasks/ directory. Supports multiple concurrent batches of work as subfolders. Use for breaking down a feature or refactor into independently implementable tasks with sequencing and acceptance criteria. Supports plan and archive subcommands.
+argument-hint: "plan <batch-name> [description] | archive <batch-name>"
 ---
 
 # Tasks Skill
@@ -12,23 +12,50 @@ $ARGUMENTS
 
 ---
 
+## Directory Structure
+
+```
+tasks/
+  TASKS.md                          # top-level index of all active batches
+  <batch-name>/
+    TASKS.md                        # batch-level tracker (sequencing, deps, criteria)
+    task-01-<short-name>.md
+    task-02-<short-name>.md
+    ...
+  archive/
+    <completed-batch-name>/
+      TASKS.md                      # preserved from when it was active
+      task-01-<short-name>.md
+      ...
+```
+
+---
+
 ## Subcommands
 
-### `plan [description]`
+### `plan <batch-name> [description]`
 
-Break down the described work (or the current conversation context if no description is given) into a set of independently implementable task files.
+Break down the described work into a set of independently implementable task files
+under `tasks/<batch-name>/`.
+
+**The batch name** should be kebab-case and descriptive (e.g. `discord-bot-foundation`,
+`user-identity`, `play-embed-posting`). It becomes the subfolder name.
 
 **Workflow:**
 
-1. **Enter plan mode** using the `EnterPlanMode` tool. Explore the codebase thoroughly before writing any files — understand what exists, what needs to change, and what the dependencies are.
+1. **Enter plan mode** using the `EnterPlanMode` tool. Explore the codebase thoroughly
+   before writing any files — understand what exists, what needs to change, and what
+   the dependencies are within this batch.
 
 2. **Design the task breakdown.** Each task should:
-   - Be independently implementable (one person/agent can do it without needing another task in progress)
+   - Be independently implementable in one sitting
    - Have a single clear responsibility
-   - Be completable in one sitting
    - Have unambiguous acceptance criteria
+   - Not depend on tasks from a *different* batch being in progress (cross-batch
+     dependencies should be documented but not blocking within a batch)
 
-3. **Write individual task files** to `tasks/task-NN-<short-name>.md` (e.g. `task-01-remove-auth.md`). Number tasks starting at `01`, zero-padded. Each file must contain:
+3. **Write individual task files** to `tasks/<batch-name>/task-NN-<short-name>.md`.
+   Number tasks starting at `01`, zero-padded. Each file must contain:
 
    ```markdown
    # Task NN — Title
@@ -42,67 +69,67 @@ Break down the described work (or the current conversation context if no descrip
    the decision context can implement it correctly.
 
    ## Notes
-   Any gotchas, related context, or things to watch out for. Omit if none.
+   Any gotchas, related context, or things to watch out for. Omit section if none.
 
    ## Acceptance Criteria
-   A checklist of verifiable conditions that must be true when the task is done.
+   Checklist of verifiable conditions that must be true when the task is done.
    At least one criterion should be a build or test check.
    ```
 
-4. **Write `tasks/TASKS.md`** — the top-level tracker. It must contain:
-   - A **goal** section (one paragraph describing the overall change)
-   - A **task table** with columns: ID, Task (linked to file), Status (`Open`/`In Progress`/`Done`), Depends On
-   - A **dependency graph** (ASCII) showing which tasks block which
-   - An **acceptance criteria** section describing how to verify the full batch is complete
+4. **Write `tasks/<batch-name>/TASKS.md`** — the batch-level tracker:
+   - **Goal**: one paragraph describing the overall change this batch achieves
+   - **Task table**: columns — ID, Task (linked to file), Status (`Open`/`In Progress`/`Done`), Depends On
+   - **Dependency graph**: ASCII diagram showing which tasks block which
+   - **Acceptance criteria**: how to verify the full batch is complete end-to-end
 
-   Status values: `Open` | `In Progress` | `Done`
-
-5. **Exit plan mode** using `ExitPlanMode` to get user approval before any files are written.
-
-6. After approval, write the files. Do not implement the tasks — just create the task files.
-
-**Numbering and ordering:**
-- Tasks that can run in parallel get sequential numbers but have no dependency between them
-- Number them in a sensible execution order even when parallel (lowest-risk deletions first, then additions)
-- Dependencies flow forward only (task-05 can depend on task-03, never the reverse)
-
----
-
-### `archive [batch-name]`
-
-Archive all completed task files so `tasks/` is clean and ready for the next batch.
-
-**Workflow:**
-
-1. Read `tasks/TASKS.md` to confirm all tasks are done (or note which are still open).
-
-2. If any tasks are still `Open` or `In Progress`, warn the user and ask for confirmation before proceeding.
-
-3. Determine the archive batch name:
-   - Use the name provided in `$ARGUMENTS` if given (e.g. `archive phase-2-upload-simplification`)
-   - Otherwise, infer a kebab-case name from the goal in `TASKS.md`
-
-4. Create `tasks/archive/<batch-name>/` and move all `tasks/task-*.md` files into it.
-
-5. Rewrite `tasks/TASKS.md` to the clean state:
+5. **Update `tasks/TASKS.md`** — the top-level index — adding the new batch:
 
    ```markdown
    # Task Tracker
 
-   ## Open Tasks
+   ## Active Batches
 
-   _No open tasks._
+   | Batch | Description | Status |
+   |-------|-------------|--------|
+   | [batch-name](batch-name/) | One-line description | In Progress |
 
    ## Archive
 
    | Batch | Description |
    |-------|-------------|
-   | [batch-name](archive/batch-name/) | One-line description of what this batch accomplished |
+   | [old-batch](archive/old-batch/) | What it accomplished |
    ```
 
-   Preserve any existing archive entries already in the table.
+   Preserve any existing active batches and archive entries already in the table.
+   Status values for batches: `Planned` | `In Progress` | `Complete`
 
-6. Commit the result with a message like:
-   `Archive <batch-name> tasks`
+6. **Exit plan mode** using `ExitPlanMode` to get user approval before any files are written.
+
+7. After approval, write the files. **Do not implement the tasks** — only create the task files.
+
+**Numbering and ordering within a batch:**
+- Tasks that can run in parallel get sequential numbers but no dependency between them
+- Number in a sensible execution order even when parallel (deletions/cleanup first, then additions)
+- Dependencies flow forward only (task-05 can depend on task-03, never the reverse)
+
+---
+
+### `archive <batch-name>`
+
+Archive a completed batch so `tasks/<batch-name>/` is cleaned up and the top-level
+index reflects its completion.
+
+**Workflow:**
+
+1. Read `tasks/<batch-name>/TASKS.md` to confirm all tasks are `Done`.
+   If any are still `Open` or `In Progress`, warn and ask for confirmation.
+
+2. Move `tasks/<batch-name>/` to `tasks/archive/<batch-name>/` (entire folder).
+
+3. Update `tasks/TASKS.md`:
+   - Remove the batch from the **Active Batches** table (or mark it `Complete`)
+   - Add it to the **Archive** table with a one-line description of what it accomplished
+
+4. Commit with message: `Archive <batch-name> tasks`
 
 **Do not delete task files** — they move to the archive, not the trash.
