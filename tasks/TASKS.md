@@ -4,7 +4,7 @@
 
 | Batch | Description | Status |
 |-------|-------------|--------|
-| [file-distribution](file-distribution/) | DM linked players their .bgsplay file for import; introduces UploadEntity and pipeline refactor | Planned |
+| *(none)* | | |
 
 ## Deferred (Design TBD)
 
@@ -16,6 +16,7 @@
 
 | Batch | Description |
 |-------|-------------|
+| [file-distribution](archive/file-distribution/) | DM linked players their .bgsplay file for BGStats import; UploadEntity, pipeline refactor, per-player distribution |
 | [player-linking](archive/player-linking/) | Map Discord users to BGStats player UUIDs via meRefId auto-link, message command self-claim, and /hermod my-players |
 | [play-embed-posting](archive/play-embed-posting/) | Post Discord embeds when plays are created in sharing-enabled groups; track posted messages in PlayPosts |
 | [group-setup](archive/group-setup/) | Slash commands for server admins to configure sharing, post channel, and spam threshold |
