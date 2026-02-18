@@ -22,3 +22,6 @@ public readonly partial struct PlayerMappingId;
 
 [ValueObject<Guid>]
 public readonly partial struct PlayPostId;
+
+[ValueObject<Guid>]
+public readonly partial struct UploadId;

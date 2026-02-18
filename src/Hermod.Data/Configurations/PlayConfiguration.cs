@@ -31,9 +31,17 @@ public class PlayConfiguration : IEntityTypeConfiguration<PlayEntity>
             .HasForeignKey(p => p.UploadedById)
             .IsRequired(false);
 
+        builder.Property(p => p.UploadId)
+            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UploadId.From(v.Value) : (UploadId?)null);
+
         builder.HasOne(p => p.Group)
             .WithMany()
             .HasForeignKey(p => p.GroupId)
             .IsRequired(false);
+
+        builder.HasOne(p => p.Upload)
+            .WithMany(u => u.Plays)
+            .HasForeignKey(p => p.UploadId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

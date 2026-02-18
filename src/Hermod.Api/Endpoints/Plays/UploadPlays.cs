@@ -1,7 +1,10 @@
+using System.Text;
 using Hermod.Api.Messages;
 using Hermod.BGStats;
-using Microsoft.AspNetCore.Mvc;
+using Hermod.Data;
+using Hermod.Data.Entities;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Wolverine;
 using Wolverine.Http;
 
@@ -13,16 +16,27 @@ public static class UploadPlays
     public static async Task<(IResult, OutgoingMessages)> Post(
         IFormFile file,
         [FromQuery] Guid? groupId,
-        [FromQuery] string? senderDiscordId)
+        [FromQuery] string? senderDiscordId,
+        HermodContext db)
     {
-        await using var stream = file.OpenReadStream();
-        var result = await PlayFileParser.ParseAsync(stream);
+        using var ms = new MemoryStream();
+        await file.CopyToAsync(ms);
+        var fileBytes = ms.ToArray();
+
+        var result = PlayFileParser.Parse(Encoding.UTF8.GetString(fileBytes));
+
+        var upload = new UploadEntity
+        {
+            Id = UploadId.From(Guid.NewGuid()),
+            FileBytes = fileBytes,
+            FileName = file.FileName,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Uploads.Add(upload);
 
         var messages = new OutgoingMessages();
-        foreach (var play in result.Plays)
-        {
-            messages.Add(new PlayExtracted(play, groupId, senderDiscordId, result.MePlayerUuid));
-        }
+        messages.Add(new PlayFileUploaded(
+            upload.Id.Value, groupId, senderDiscordId, result.MePlayerUuid));
 
         return (Results.Accepted(), messages);
     }

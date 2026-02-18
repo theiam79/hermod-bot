@@ -2,4 +2,4 @@ using Hermod.BGStats.Models;
 
 namespace Hermod.Api.Messages;
 
-public record PlayExtracted(Play ParsedPlay, Guid? GroupId, string? SenderDiscordId, Guid? MePlayerUuid);
+public record PlayExtracted(Play ParsedPlay, Guid? GroupId, string? SenderDiscordId, Guid? MePlayerUuid, Guid? UploadId);

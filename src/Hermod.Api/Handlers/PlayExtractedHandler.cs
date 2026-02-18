@@ -40,6 +40,7 @@ public static class PlayExtractedHandler
         {
             Id = PlayId.From(Guid.NewGuid()),
             UploadedById = uploadedById,
+            UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null,
             GroupId = message.GroupId.HasValue ? GroupId.From(message.GroupId.Value) : null,
             BgStatsPlayUuid = play.Uuid.ToString(),
             GameName = play.Game.Name,

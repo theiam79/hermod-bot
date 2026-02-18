@@ -16,9 +16,11 @@ public class PlayEntity
     public string? Comments { get; set; }
     public string? ImageUrl { get; set; }
     public DateTime CreatedAt { get; set; }
+    public UploadId? UploadId { get; set; }
 
     public UserEntity? UploadedBy { get; set; }
     public GroupEntity? Group { get; set; }
+    public UploadEntity? Upload { get; set; }
     public List<PlayPlayerEntity> Players { get; set; } = [];
     public List<PlayPostEntity> Posts { get; set; } = [];
 }

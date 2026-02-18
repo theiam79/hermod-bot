@@ -1,9 +1,11 @@
+using System.Text;
 using Discord;
 using Discord.Addons.Hosting;
 using Discord.WebSocket;
 using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
+using Hermod.Data.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -60,31 +62,39 @@ public class MessageReceivedHandler(
             {
                 try
                 {
-                    await using var stream = await http.GetStreamAsync(attachment.Url);
-                    var result = await PlayFileParser.ParseAsync(stream);
+                    var fileBytes = await http.GetByteArrayAsync(attachment.Url);
+                    var result = PlayFileParser.Parse(Encoding.UTF8.GetString(fileBytes));
 
                     if (result.Plays.Count == 0)
                     {
-                        logger.LogWarning("No plays found in {Filename} uploaded by {Author}", 
+                        logger.LogWarning("No plays found in {Filename} uploaded by {Author}",
                             attachment.Filename, message.Author.Username);
                         processedCount++;
                         continue;
                     }
 
-                    foreach (var play in result.Plays)
+                    var upload = new UploadEntity
                     {
-                        await bus.PublishAsync(new PlayExtracted(play, groupId, senderDiscordId, result.MePlayerUuid));
-                    }
+                        Id = UploadId.From(Guid.NewGuid()),
+                        FileBytes = fileBytes,
+                        FileName = attachment.Filename,
+                        CreatedAt = DateTime.UtcNow,
+                    };
+                    db.Uploads.Add(upload);
+                    await db.SaveChangesAsync();
+
+                    await bus.PublishAsync(new PlayFileUploaded(
+                        upload.Id.Value, groupId, senderDiscordId, result.MePlayerUuid));
 
                     logger.LogInformation(
-                        "Dispatched {Count} play(s) from {Filename} uploaded by {Author}",
-                        result.Plays.Count, attachment.Filename, message.Author.Username);
-                    
+                        "Stored upload {UploadId} ({Filename}) with {Count} play(s) from {Author}",
+                        upload.Id.Value, attachment.Filename, result.Plays.Count, message.Author.Username);
+
                     processedCount++;
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Failed to process attachment {Filename} from {Author}", 
+                    logger.LogError(ex, "Failed to process attachment {Filename} from {Author}",
                         attachment.Filename, message.Author.Username);
                     failureCount++;
                 }
@@ -94,7 +104,7 @@ public class MessageReceivedHandler(
             {
                 await message.AddReactionAsync(new Emoji("✅"));
             }
-            
+
             if (failureCount > 0 && processedCount == 0)
             {
                 await message.AddReactionAsync(new Emoji("❌"));
