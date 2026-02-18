@@ -15,6 +15,8 @@ builder.AddServiceDefaults();
 
 builder.Services.AddOpenApi();
 
+builder.Services.AddHttpClient();
+
 builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db"));
 
@@ -29,8 +31,9 @@ builder.Host
             MessageCacheSize = 200,
             GatewayIntents =
                 GatewayIntents.Guilds |
-                GatewayIntents.GuildMembers |   // privileged — enable in Discord dev portal
-                GatewayIntents.GuildMessages
+                GatewayIntents.GuildMembers |    // privileged — enable in Discord dev portal
+                GatewayIntents.GuildMessages |
+                GatewayIntents.MessageContent    // privileged — required to read attachments
         };
     })
     .UseInteractionService((context, config) =>
@@ -42,6 +45,7 @@ builder.Host
 builder.Services.AddHostedService<BotService>();
 builder.Services.AddHostedService<InteractionHandler>();
 builder.Services.AddHostedService<GuildHandler>();
+builder.Services.AddHostedService<MessageReceivedHandler>();
 
 builder.Host.UseWolverine(opts =>
 {

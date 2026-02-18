@@ -11,8 +11,8 @@ after successful dispatch.
 
 | ID | Task | Status | Depends On |
 |----|------|--------|------------|
-| 01 | [MessageReceivedHandler service](task-01-message-received-handler.md) | Open | discord-bot-foundation |
-| 02 | [Handle multiple .bgsplay attachments](task-02-multi-attachment.md) | Open | 01 |
+| 01 | [MessageReceivedHandler service](task-01-message-received-handler.md) | Completed | discord-bot-foundation |
+| 02 | [Handle multiple .bgsplay attachments](task-02-multi-attachment.md) | Completed | 01 |
 
 ## Dependency Graph
 
