@@ -4,20 +4,19 @@
 
 | Batch | Description | Status |
 |-------|-------------|--------|
-| *(none)* | | |
+| [file-distribution](file-distribution/) | DM linked players their .bgsplay file for import; introduces UploadEntity and pipeline refactor | Planned |
 
 ## Deferred (Design TBD)
 
 | Batch | Notes |
 |-------|-------|
-| player-linking | Map Discord users to BGStats player UUIDs. Options: auto-link via meRefId on upload, message-command on embed for self-claim, manual tagging at upload time. Multiple Discord users per UUID may be acceptable. Workshop UX before planning. |
-| file-distribution | DM linked players their play results after posting. Depends on player-linking design. |
 | multi-play-threshold | Switch from individual embeds to a summary embed when a single upload exceeds the group's SpamThreshold. Depends on play-embed-posting being validated in production. |
 
 ## Archive
 
 | Batch | Description |
 |-------|-------------|
+| [player-linking](archive/player-linking/) | Map Discord users to BGStats player UUIDs via meRefId auto-link, message command self-claim, and /hermod my-players |
 | [play-embed-posting](archive/play-embed-posting/) | Post Discord embeds when plays are created in sharing-enabled groups; track posted messages in PlayPosts |
 | [group-setup](archive/group-setup/) | Slash commands for server admins to configure sharing, post channel, and spam threshold |
 | [discord-message-handler](archive/discord-message-handler/) | Process .bgsplay attachments dropped in Discord channels; react ✅ and dispatch through Wolverine pipeline |
