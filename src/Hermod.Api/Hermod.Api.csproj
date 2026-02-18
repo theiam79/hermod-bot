@@ -12,14 +12,12 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.0-*" PrivateAssets="all" />
     <PackageReference Include="WolverineFx.Http" Version="5.*" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.*" />
-    <PackageReference Include="Riok.Mapperly" Version="4.*" PrivateAssets="all" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Hermod.ServiceDefaults\Hermod.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Hermod.Data\Hermod.Data.csproj" />
     <ProjectReference Include="..\Hermod.BGStats\Hermod.BGStats.csproj" />
-    <ProjectReference Include="..\Hermod.Contracts\Hermod.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

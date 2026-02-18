@@ -1,9 +1,7 @@
-using Hermod.Api.Handlers;
-using Hermod.Api.Mappers;
-using Hermod.Contracts.Plays;
-using Hermod.Data;
-using Microsoft.AspNetCore.Authorization;
+using Hermod.Api.Messages;
+using Hermod.BGStats;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 using Wolverine;
 using Wolverine.Http;
 
@@ -11,23 +9,20 @@ namespace Hermod.Api.Endpoints.Plays;
 
 public static class UploadPlays
 {
-    [Authorize]
     [WolverinePost("/api/plays/upload")]
-    public static async Task<PlayResponse[]> Post(
+    public static async Task<(IResult, OutgoingMessages)> Post(
         IFormFile file,
-        [FromQuery] Guid uploadedById,
-        [FromQuery] Guid? groupId,
-        [FromQuery] string? imageUrl,
-        IMessageBus bus)
+        [FromQuery] Guid? groupId)
     {
         await using var stream = file.OpenReadStream();
-        var command = new UploadPlaysCommand(
-            stream,
-            UserId.From(uploadedById),
-            groupId.HasValue ? GroupId.From(groupId.Value) : null,
-            imageUrl);
+        var result = await PlayFileParser.ParseAsync(stream);
 
-        var entities = await bus.InvokeAsync<List<Data.Entities.PlayEntity>>(command);
-        return ResponseMapper.ToResponseArray(entities);
+        var messages = new OutgoingMessages();
+        foreach (var play in result.Plays)
+        {
+            messages.Add(new PlayExtracted(play, groupId));
+        }
+
+        return (Results.Accepted(), messages);
     }
 }

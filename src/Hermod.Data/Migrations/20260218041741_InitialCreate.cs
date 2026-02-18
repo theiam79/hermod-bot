@@ -73,7 +73,7 @@ namespace Hermod.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UploadedById = table.Column<Guid>(type: "TEXT", nullable: false),
+                    UploadedById = table.Column<Guid>(type: "TEXT", nullable: true),
                     GroupId = table.Column<Guid>(type: "TEXT", nullable: true),
                     BgStatsPlayUuid = table.Column<string>(type: "TEXT", maxLength: 100, nullable: false),
                     GameName = table.Column<string>(type: "TEXT", maxLength: 500, nullable: false),
@@ -84,7 +84,6 @@ namespace Hermod.Data.Migrations
                     LocationName = table.Column<string>(type: "TEXT", maxLength: 500, nullable: true),
                     Rounds = table.Column<int>(type: "INTEGER", nullable: true),
                     Comments = table.Column<string>(type: "TEXT", nullable: true),
-                    RawPlayFileJson = table.Column<string>(type: "TEXT", nullable: false),
                     ImageUrl = table.Column<string>(type: "TEXT", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "TEXT", nullable: false)
                 },
@@ -100,8 +99,7 @@ namespace Hermod.Data.Migrations
                         name: "FK_Plays_Users_UploadedById",
                         column: x => x.UploadedById,
                         principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
+                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(

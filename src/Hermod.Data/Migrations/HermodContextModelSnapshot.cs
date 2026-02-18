@@ -90,14 +90,10 @@ namespace Hermod.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("RawPlayFileJson")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
                     b.Property<int?>("Rounds")
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid>("UploadedById")
+                    b.Property<Guid?>("UploadedById")
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
@@ -256,9 +252,7 @@ namespace Hermod.Data.Migrations
 
                     b.HasOne("Hermod.Data.Entities.UserEntity", "UploadedBy")
                         .WithMany("UploadedPlays")
-                        .HasForeignKey("UploadedById")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UploadedById");
 
                     b.Navigation("Group");
 
