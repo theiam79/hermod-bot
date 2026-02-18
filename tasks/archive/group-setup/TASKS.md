@@ -10,8 +10,8 @@ permission.
 
 | ID | Task | Status | Depends On |
 |----|------|--------|------------|
-| 01 | [Add SpamThreshold to GroupEntity](task-01-spam-threshold-entity.md) | Open | — |
-| 02 | [GroupAdmin slash commands](task-02-group-admin-commands.md) | Open | 01, discord-bot-foundation |
+| 01 | [Add SpamThreshold to GroupEntity](task-01-spam-threshold-entity.md) | Completed | — |
+| 02 | [GroupAdmin slash commands](task-02-group-admin-commands.md) | Completed | 01, discord-bot-foundation |
 
 ## Dependency Graph
 
