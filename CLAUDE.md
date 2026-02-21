@@ -16,7 +16,7 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
   - `WolverineFx.Http` replaces raw Minimal API `MapGet`/`MapPost` for endpoint routing
   - `AutoApplyTransactions()` + `UseEntityFrameworkCoreTransactions()` for unit-of-work
   - Start with HTTP only; async messaging transport added later
-- **EF Core + SQLite** for data access
+- **EF Core + PostgreSQL** for data access (managed by Aspire via container)
 - **Discord.Net 3.x + Discord.Addons.Hosting 5.x** — bot hosted services colocated inside Hermod.Api
 - **Vite + React + TypeScript** for the web frontend (planned)
 - **TUnit** for testing (NOT xUnit/NUnit/MSTest)
@@ -105,7 +105,7 @@ If a build leaves unexpected state, delete `bin/` and `obj/` manually and rebuil
 - **NCalcSync 5.2.12**: Does not exist on NuGet. Use 5.3.0.
 - **Sandbox restrictions**: `dotnet new` may fail if HOME is not writable.
 - **Aspire CLI**: Logs a warning about read-only filesystem for log files — harmless.
-- **SQLite single-writer**: Data access is centralised in Hermod.Api to avoid write contention.
+- **PostgreSQL via Aspire**: The AppHost provisions a PostgreSQL container with a `hermod-db` database. The connection string is auto-injected as `ConnectionStrings:hermod-db`. For `dotnet ef` CLI outside Aspire, set `HERMOD_CONNECTION_STRING` env var or use the default `Host=localhost;Database=hermod;Username=postgres;Password=postgres`.
 - **Windows-artifact bin\Debug directories**: On Linux, a folder literally named `bin\Debug` (backslash) can appear from Windows-generated build output. Not caught by `[Bb]in/` gitignore; covered by `*\\*`. Delete them if they appear.
 - **Discord privileged intents**: `GatewayIntents.GuildMembers` and `GatewayIntents.MessageContent` must be enabled in the Discord Developer Portal under Bot → Privileged Gateway Intents. Without `MessageContent`, `message.Attachments` is always empty.
 - **`global::Discord.Interactions.IResult`**: Within the `Hermod.Api.Discord` namespace, `IResult` is ambiguous with `Microsoft.AspNetCore.Http.IResult`. Use the fully-qualified form `global::Discord.Interactions.IResult`.

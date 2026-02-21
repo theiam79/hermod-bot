@@ -8,7 +8,9 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<HermodCont
     public HermodContext CreateDbContext(string[] args)
     {
         var optionsBuilder = new DbContextOptionsBuilder<HermodContext>();
-        optionsBuilder.UseSqlite("Data Source=hermod.db");
+        var connectionString = Environment.GetEnvironmentVariable("HERMOD_CONNECTION_STRING")
+            ?? "Host=localhost;Database=hermod;Username=postgres;Password=postgres";
+        optionsBuilder.UseNpgsql(connectionString);
         return new HermodContext(optionsBuilder.Options);
     }
 }

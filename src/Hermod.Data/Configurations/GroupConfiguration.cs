@@ -16,6 +16,6 @@ public class GroupConfiguration : IEntityTypeConfiguration<GroupEntity>
 
         builder.Property(g => g.SpamThreshold).HasDefaultValue(3);
 
-        builder.HasIndex(g => g.DiscordGuildId).IsUnique().HasFilter("DiscordGuildId IS NOT NULL");
+        builder.HasIndex(g => g.DiscordGuildId).IsUnique().HasFilter("\"DiscordGuildId\" IS NOT NULL");
     }
 }

@@ -8,13 +8,13 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.3" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.3" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.3" PrivateAssets="all" />
     <PackageReference Include="WolverineFx.Http" Version="5.*" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" Version="5.*" />
     <PackageReference Include="Discord.Net" Version="3.*" />
     <PackageReference Include="Discord.Addons.Hosting" Version="6.*" />
-    <PackageReference Include="WolverineFx.Sqlite" Version="5.*" />
+    <PackageReference Include="WolverineFx.Postgresql" Version="5.*" />
   </ItemGroup>
 
   <ItemGroup>

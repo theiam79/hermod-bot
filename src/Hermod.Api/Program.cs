@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Http;
-using Wolverine.Sqlite;
+using Wolverine.Postgresql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,10 +18,11 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient();
 
-var connectionString = builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db";
+var connectionString = builder.Configuration.GetConnectionString("hermod-db")
+    ?? throw new InvalidOperationException("ConnectionStrings:hermod-db is not configured.");
 
 builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
-    options.UseSqlite(connectionString));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddDiscordHost((config, _) =>
 {
@@ -52,7 +53,7 @@ builder.Services.AddHostedService<MessageReceivedHandler>();
 
 builder.Host.UseWolverine(opts =>
 {
-    opts.PersistMessagesWithSqlite(connectionString);
+    opts.PersistMessagesWithPostgresql(connectionString);
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.AutoApplyTransactions();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
