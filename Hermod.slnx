@@ -9,10 +9,4 @@
   <Folder Name="/tests/">
     <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />
   </Folder>
-  <Folder Name="/legacy/">
-    <Project Path="legacy/Hermod.BGstats/Hermod.BGstats.csproj" />
-    <Project Path="legacy/Hermod.Bot/Hermod.Bot.csproj" />
-    <Project Path="legacy/Hermod.Core/Hermod.Core.csproj" />
-    <Project Path="legacy/Hermod.Data/Hermod.Data.csproj" />
-  </Folder>
 </Solution>

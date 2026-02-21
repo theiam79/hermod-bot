@@ -17,7 +17,7 @@ public class PlayFileParserTests
 
         var result = PlayFileParser.Parse(json);
 
-        await Assert.That(result.Plays).HasCount().EqualTo(1);
+        await Assert.That(result.Plays).Count().IsEqualTo(1);
     }
 
     [Test]
@@ -28,7 +28,7 @@ public class PlayFileParserTests
 
         var result = PlayFileParser.Parse(json);
 
-        await Assert.That(result.Plays).HasCount().EqualTo(6);
+        await Assert.That(result.Plays).Count().IsEqualTo(6);
     }
 
     [Test]
@@ -54,7 +54,7 @@ public class PlayFileParserTests
         var result = PlayFileParser.Parse(json);
         var play = result.Plays[0];
 
-        await Assert.That(play.Scores).HasCount().EqualTo(6);
+        await Assert.That(play.Scores).Count().IsEqualTo(6);
         await Assert.That(play.Scores.Select(s => s.Player.Name))
             .Contains("Tyler Hundley");
     }
@@ -139,10 +139,10 @@ public class PlayFileParserTests
         var seti = result.Plays[1];
         await Assert.That(seti.Scoresheet).IsNotNull();
         await Assert.That(seti.Scoresheet!.BggId).IsEqualTo(418059);
-        await Assert.That(seti.Scoresheet.Groups).HasCount().GreaterThan(0);
+        await Assert.That(seti.Scoresheet.Groups).Count().IsGreaterThan(0);
 
         var firstGroup = seti.Scoresheet.Groups[0];
-        await Assert.That(firstGroup.Rows).HasCount().GreaterThan(0);
+        await Assert.That(firstGroup.Rows).Count().IsGreaterThan(0);
         await Assert.That(firstGroup.Rows[0].Label).IsEqualTo("Score track");
     }
 
@@ -156,7 +156,7 @@ public class PlayFileParserTests
 
         // Elder Scrolls play (index 4) uses an expansion
         var elderScrolls = result.Plays[4];
-        await Assert.That(elderScrolls.ExpansionsUsed).HasCount().EqualTo(1);
+        await Assert.That(elderScrolls.ExpansionsUsed).Count().IsEqualTo(1);
         await Assert.That(elderScrolls.ExpansionsUsed[0].Name)
             .Contains("Valenwood");
     }
@@ -198,7 +198,7 @@ public class PlayFileParserTests
         await using var stream = File.OpenRead(path);
         var streamResult = await PlayFileParser.ParseAsync(stream);
 
-        await Assert.That(streamResult.Plays).HasCount().EqualTo(stringResult.Plays.Count);
+        await Assert.That(streamResult.Plays).Count().IsEqualTo(stringResult.Plays.Count);
         await Assert.That(streamResult.MeRefId).IsEqualTo(stringResult.MeRefId);
     }
 }

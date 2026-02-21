@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.Http;
+using Wolverine.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,30 +18,32 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient();
 
-builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db"));
+var connectionString = builder.Configuration.GetConnectionString("HermodDb") ?? "Data Source=hermod.db";
 
-builder.Host
-    .ConfigureDiscordHost((context, config) =>
+builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
+    options.UseSqlite(connectionString));
+
+builder.Services.AddDiscordHost((config, _) =>
+{
+    config.Token = builder.Configuration["Discord:Token"]
+        ?? throw new InvalidOperationException("Discord:Token is not configured.");
+    config.SocketConfig = new DiscordSocketConfig
     {
-        config.Token = context.Configuration["Discord:Token"]
-            ?? throw new InvalidOperationException("Discord:Token is not configured.");
-        config.SocketConfig = new DiscordSocketConfig
-        {
-            AlwaysDownloadUsers = true,
-            MessageCacheSize = 200,
-            GatewayIntents =
-                GatewayIntents.Guilds |
-                GatewayIntents.GuildMembers |    // privileged — enable in Discord dev portal
-                GatewayIntents.GuildMessages |
-                GatewayIntents.MessageContent    // privileged — required to read attachments
-        };
-    })
-    .UseInteractionService((context, config) =>
-    {
-        config.LogLevel = LogSeverity.Info;
-        config.UseCompiledLambda = true;
-    });
+        AlwaysDownloadUsers = true,
+        MessageCacheSize = 200,
+        GatewayIntents =
+            GatewayIntents.Guilds |
+            GatewayIntents.GuildMembers |    // privileged — enable in Discord dev portal
+            GatewayIntents.GuildMessages |
+            GatewayIntents.MessageContent    // privileged — required to read attachments
+    };
+});
+
+builder.Services.AddInteractionService((config, _) =>
+{
+    config.LogLevel = LogSeverity.Info;
+    config.UseCompiledLambda = true;
+});
 
 builder.Services.AddHostedService<BotService>();
 builder.Services.AddHostedService<InteractionHandler>();
@@ -49,9 +52,13 @@ builder.Services.AddHostedService<MessageReceivedHandler>();
 
 builder.Host.UseWolverine(opts =>
 {
+    opts.PersistMessagesWithSqlite(connectionString);
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.AutoApplyTransactions();
+    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
 });
+
+builder.Services.AddWolverineHttp();
 
 var app = builder.Build();
 
