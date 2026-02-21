@@ -12,7 +12,6 @@ public class HermodContext(DbContextOptions<HermodContext> options) : DbContext(
     public DbSet<PlayPlayerEntity> PlayPlayers => Set<PlayPlayerEntity>();
     public DbSet<PlayerMappingEntity> PlayerMappings => Set<PlayerMappingEntity>();
     public DbSet<UserExternalLoginEntity> UserExternalLogins => Set<UserExternalLoginEntity>();
-    public DbSet<PlayPostEntity> PlayPosts => Set<PlayPostEntity>();
     public DbSet<UploadEntity> Uploads => Set<UploadEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

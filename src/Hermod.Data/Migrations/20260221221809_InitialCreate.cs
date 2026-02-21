@@ -17,10 +17,7 @@ namespace Hermod.Data.Migrations
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
                     Name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
-                    DiscordGuildId = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
-                    DiscordPostChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: true),
-                    AllowSharing = table.Column<bool>(type: "boolean", nullable: false),
-                    SpamThreshold = table.Column<int>(type: "integer", nullable: false, defaultValue: 3)
+                    AllowSharing = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -202,35 +199,6 @@ namespace Hermod.Data.Migrations
                         principalColumn: "Id");
                 });
 
-            migrationBuilder.CreateTable(
-                name: "PlayPosts",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    PlayId = table.Column<Guid>(type: "uuid", nullable: false),
-                    DiscordGuildId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
-                    DiscordChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
-                    DiscordMessageId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
-                    PostedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_PlayPosts", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_PlayPosts_Plays_PlayId",
-                        column: x => x.PlayId,
-                        principalTable: "Plays",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Groups_DiscordGuildId",
-                table: "Groups",
-                column: "DiscordGuildId",
-                unique: true,
-                filter: "\"DiscordGuildId\" IS NOT NULL");
-
             migrationBuilder.CreateIndex(
                 name: "IX_PlayerMappings_BgStatsPlayerUuid_MappedUserId",
                 table: "PlayerMappings",
@@ -251,12 +219,6 @@ namespace Hermod.Data.Migrations
                 name: "IX_PlayPlayers_PlayId",
                 table: "PlayPlayers",
                 column: "PlayId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_PlayPosts_PlayId_DiscordGuildId",
-                table: "PlayPosts",
-                columns: new[] { "PlayId", "DiscordGuildId" },
-                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Plays_BgStatsPlayUuid",
@@ -313,9 +275,6 @@ namespace Hermod.Data.Migrations
 
             migrationBuilder.DropTable(
                 name: "PlayPlayers");
-
-            migrationBuilder.DropTable(
-                name: "PlayPosts");
 
             migrationBuilder.DropTable(
                 name: "UserExternalLogins");

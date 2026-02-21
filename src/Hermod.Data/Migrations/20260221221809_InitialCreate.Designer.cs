@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Data.Migrations
 {
     [DbContext(typeof(HermodContext))]
-    [Migration("20260221191500_InitialCreate")]
+    [Migration("20260221221809_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -33,27 +33,12 @@ namespace Hermod.Data.Migrations
                     b.Property<bool>("AllowSharing")
                         .HasColumnType("boolean");
 
-                    b.Property<decimal?>("DiscordGuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal?>("DiscordPostChannelId")
-                        .HasColumnType("numeric(20,0)");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
-                    b.Property<int>("SpamThreshold")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer")
-                        .HasDefaultValue(3);
-
                     b.HasKey("Id");
-
-                    b.HasIndex("DiscordGuildId")
-                        .IsUnique()
-                        .HasFilter("\"DiscordGuildId\" IS NOT NULL");
 
                     b.ToTable("Groups");
                 });
@@ -182,34 +167,6 @@ namespace Hermod.Data.Migrations
                     b.HasIndex("PlayId");
 
                     b.ToTable("PlayPlayers");
-                });
-
-            modelBuilder.Entity("Hermod.Data.Entities.PlayPostEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<decimal>("DiscordChannelId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal>("DiscordGuildId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<decimal>("DiscordMessageId")
-                        .HasColumnType("numeric(20,0)");
-
-                    b.Property<Guid>("PlayId")
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("PostedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PlayId", "DiscordGuildId")
-                        .IsUnique();
-
-                    b.ToTable("PlayPosts");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayerMappingEntity", b =>
@@ -374,17 +331,6 @@ namespace Hermod.Data.Migrations
                     b.Navigation("Play");
                 });
 
-            modelBuilder.Entity("Hermod.Data.Entities.PlayPostEntity", b =>
-                {
-                    b.HasOne("Hermod.Data.Entities.PlayEntity", "Play")
-                        .WithMany("Posts")
-                        .HasForeignKey("PlayId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Play");
-                });
-
             modelBuilder.Entity("Hermod.Data.Entities.PlayerMappingEntity", b =>
                 {
                     b.HasOne("Hermod.Data.Entities.UserEntity", "MappedUser")
@@ -444,8 +390,6 @@ namespace Hermod.Data.Migrations
             modelBuilder.Entity("Hermod.Data.Entities.PlayEntity", b =>
                 {
                     b.Navigation("Players");
-
-                    b.Navigation("Posts");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.UploadEntity", b =>
