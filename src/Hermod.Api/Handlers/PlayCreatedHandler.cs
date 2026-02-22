@@ -5,9 +5,10 @@ namespace Hermod.Api.Handlers;
 
 public static class PlayCreatedHandler
 {
-    public static PostPlay? Handle(PlayCreated message, ILogger logger)
+    public static PostPlay? Handle(PlayPersisted message, ILogger logger)
     {
-        logger.LogInformation("Play {PlayId} created", message.PlayId);
+        logger.LogInformation("Play {PlayId} persisted ({ChangeType})",
+            message.PlayId, message.ChangeType);
 
         // No group context available — skip posting (will be replaced by SharePlayHandler)
         return null;
