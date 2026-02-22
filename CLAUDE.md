@@ -17,6 +17,8 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
   - `WolverineFx.Postgresql` for PostgreSQL transport (Bot ↔ API messaging)
   - `AutoApplyTransactions()` + `UseEntityFrameworkCoreTransactions()` for unit-of-work
 - **EF Core + PostgreSQL** for data access (managed by Aspire via container)
+  - Use **Aspire client integration packages** (e.g. `Aspire.Npgsql.EntityFrameworkCore.PostgreSQL`) over raw provider packages for health checks, OpenTelemetry, and retry logic
+  - When a third-party library owns DbContext registration (e.g. Wolverine), use `Enrich*` to layer on Aspire telemetry
 - **Discord.Net 3.x + Discord.Addons.Hosting 6.x** — bot runs in separate `Hermod.Bot` project
 - **Vite + React + TypeScript** for the web frontend (planned)
 - **TUnit** for testing (NOT xUnit/NUnit/MSTest)
@@ -32,6 +34,7 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 | **NCalcSync** (5.3.0) | Score expression evaluation | Note: version 5.2.12 does not exist on NuGet |
 | **Discord.Net** (3.x) | Discord bot framework | Only in Hermod.Bot |
 | **Discord.Addons.Hosting** (6.x) | DI/lifecycle wiring for Discord.Net | `DiscordClientService` base class |
+| **Aspire.Npgsql.EntityFrameworkCore.PostgreSQL** | Aspire EF Core client integration | Prefer over raw `Npgsql.EntityFrameworkCore.PostgreSQL` in service projects |
 | **TUnit** | Testing framework | `OutputType=Exe`, no `Microsoft.NET.Test.Sdk` needed |
 | **AspNet.Security.OAuth.Discord** | Discord OAuth provider | For user authentication (Phase 4) |
 
@@ -162,3 +165,4 @@ If a build leaves unexpected state, delete `bin/` and `obj/` manually and rebuil
 - **Discord modules**: use `partial class` to split a slash command group across files (e.g. `InfoModule.cs` + `InfoModule.Admin.cs`) to avoid Discord.Net group registration conflicts
 - **Singleton Discord services needing scoped services**: inject `IServiceScopeFactory`, create a scope per operation with `await using var scope = _scopeFactory.CreateAsyncScope()`
 - **Wolverine handlers are static**: all dependencies injected as method parameters; no instance state
+- **Prefer Aspire client integration packages** (`Aspire.*`) over raw provider packages in service projects. They add health checks, OpenTelemetry tracing/metrics, and resilience automatically. Use `Add*()` when Aspire can own registration; use `Enrich*()` when a third-party library (e.g. Wolverine) must register the service first. Disable Aspire retries (`DisableRetry = true`) on DbContexts managed by Wolverine, which handles retries at the handler level.
