@@ -3,65 +3,62 @@ using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
 using Hermod.Data.Entities;
+using Microsoft.AspNetCore.Mvc;
 using Wolverine;
+using Wolverine.Http;
 
 namespace Hermod.Api.Endpoints.Plays;
 
 public static class UploadPlays
 {
-    private const long MaxFileSizeBytes = 1_048_576; // 1 MB
+    private const int MaxFileSizeBytes = 1_048_576; // 1 MB
 
-    public static void MapUploadEndpoint(this WebApplication app)
-    {
-        app.MapPost("/api/plays/upload", HandleUpload)
-            .DisableAntiforgery();
-    }
-
-    private static async Task<IResult> HandleUpload(IFormFile file, ClaimsPrincipal user, IMessageBus bus, HermodContext db)
+    public static IResult? Before(ClaimsPrincipal user)
     {
         var userIdClaim = user.FindFirstValue("hermod:user_id");
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var userId))
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out _))
             return Results.Unauthorized();
 
+        return WolverineContinue.Result();
+    }
+
+    [WolverinePost("/api/plays/upload")]
+    public static async Task<(IResult, OutgoingMessages)> Post(IFormFile file, ClaimsPrincipal user, [FromServices] HermodContext db)
+    {
         if (file.Length > MaxFileSizeBytes)
-            return Results.BadRequest("File exceeds maximum size of 1 MB.");
+            return (Results.BadRequest("File exceeds maximum size of 1 MB."), []);
 
-        using var reader = new StreamReader(file.OpenReadStream());
-        var fileContent = await reader.ReadToEndAsync();
-
-        PlayFileResult result;
+        PlayFileResult parsed;
+        string content;
         try
         {
-            result = PlayFileParser.Parse(fileContent);
+            using var stream = file.OpenReadStream();
+            using var reader = new StreamReader(stream);
+            content = await reader.ReadToEndAsync();
+            parsed = PlayFileParser.Parse(content);
         }
         catch
         {
-            return Results.BadRequest("Invalid .bgsplay file.");
+            return (Results.BadRequest("Invalid .bgsplay file content."), []);
         }
 
+        var userId = Guid.Parse(user.FindFirstValue("hermod:user_id")!);
         var uploadId = UploadId.From(Guid.NewGuid());
-        var upload = new UploadEntity
+
+        db.Uploads.Add(new UploadEntity
         {
             Id = uploadId,
             UploadedById = UserId.From(userId),
-            FileContent = fileContent,
+            FileContent = content,
             FileName = file.FileName,
             CreatedAt = DateTime.UtcNow,
+        });
+
+        var messages = new OutgoingMessages
+        {
+            new PlayFileUploaded(uploadId.Value, null, parsed.MePlayerUuid, userId),
         };
 
-        db.Uploads.Add(upload);
-        await db.SaveChangesAsync();
-
-        await bus.PublishAsync(new PlayFileUploaded(
-            uploadId.Value,
-            GroupId: null,
-            MePlayerUuid: result.MePlayerUuid,
-            UploadedById: userId));
-
-        return Results.Accepted(value: new
-        {
-            UploadId = uploadId.Value,
-            PlayCount = result.Plays.Count,
-        });
+        return (Results.Accepted(null, new UploadResult(uploadId.Value, parsed.Plays.Count)), messages);
     }
 }

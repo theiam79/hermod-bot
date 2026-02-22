@@ -1,6 +1,5 @@
 using System.Security.Claims;
 using Hermod.Api.Auth;
-using Hermod.Api.Endpoints.Plays;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.AspNetCore.Authentication;
@@ -138,6 +137,7 @@ builder.Host.UseWolverine(opts =>
 
 builder.Services.AddWolverineHttp();
 
+
 var app = builder.Build();
 
 app.MapDefaultEndpoints();
@@ -150,8 +150,8 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapWolverineEndpoints();
-app.MapUploadEndpoint();
+app.MapWolverineEndpoints(opts =>
+    opts.ConfigureEndpoints(e => e.DisableAntiforgery()));
 
 // Apply migrations
 using (var scope = app.Services.CreateScope())
