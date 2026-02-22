@@ -16,7 +16,6 @@ public static class PlayExtractedHandler
             Id = PlayId.From(Guid.NewGuid()),
             UploadedById = UserId.From(message.UploadedById),
             UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null,
-            GroupId = message.GroupId.HasValue ? GroupId.From(message.GroupId.Value) : null,
             BgStatsPlayUuid = play.Uuid.ToString(),
             GameName = play.Game.Name,
             BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null,
@@ -66,6 +65,6 @@ public static class PlayExtractedHandler
             }
         }
 
-        return new PlayCreated(entity.Id.Value, message.GroupId);
+        return new PlayCreated(entity.Id.Value);
     }
 }

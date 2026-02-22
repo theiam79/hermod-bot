@@ -59,8 +59,7 @@ namespace Hermod.Data.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UploadedById = table.Column<Guid>(type: "uuid", nullable: true),
-                    GroupId = table.Column<Guid>(type: "uuid", nullable: true),
+                    UploadedById = table.Column<Guid>(type: "uuid", nullable: false),
                     BgStatsPlayUuid = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     GameName = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: false),
                     BggGameId = table.Column<int>(type: "integer", nullable: true),
@@ -77,11 +76,6 @@ namespace Hermod.Data.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Plays", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_Plays_Groups_GroupId",
-                        column: x => x.GroupId,
-                        principalTable: "Groups",
-                        principalColumn: "Id");
                     table.ForeignKey(
                         name: "FK_Plays_Uploads_UploadId",
                         column: x => x.UploadId,
@@ -190,19 +184,15 @@ namespace Hermod.Data.Migrations
                 column: "PlayId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Plays_BgStatsPlayUuid",
+                name: "IX_Plays_BgStatsPlayUuid_UploadedById",
                 table: "Plays",
-                column: "BgStatsPlayUuid");
+                columns: new[] { "BgStatsPlayUuid", "UploadedById" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Plays_DatePlayed",
                 table: "Plays",
                 column: "DatePlayed");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Plays_GroupId",
-                table: "Plays",
-                column: "GroupId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Plays_UploadId",
@@ -231,10 +221,10 @@ namespace Hermod.Data.Migrations
                 name: "Plays");
 
             migrationBuilder.DropTable(
-                name: "UserProfiles");
+                name: "Groups");
 
             migrationBuilder.DropTable(
-                name: "Groups");
+                name: "UserProfiles");
 
             migrationBuilder.DropTable(
                 name: "Uploads");

@@ -56,7 +56,7 @@ public static class UploadPlays
 
         var messages = new OutgoingMessages
         {
-            new PlayFileUploaded(uploadId.Value, null, parsed.MePlayerUuid, userId),
+            new PlayFileUploaded(uploadId.Value, parsed.MePlayerUuid, userId),
         };
 
         return (Results.Accepted(null, new UploadResult(uploadId.Value, parsed.Plays.Count)), messages);

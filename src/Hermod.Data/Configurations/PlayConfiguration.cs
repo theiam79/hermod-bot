@@ -13,9 +13,8 @@ public class PlayConfiguration : IEntityTypeConfiguration<PlayEntity>
             .HasConversion(id => id.Value, v => PlayId.From(v));
 
         builder.Property(p => p.UploadedById)
-            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UserId.From(v.Value) : (UserId?)null);
-        builder.Property(p => p.GroupId)
-            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? GroupId.From(v.Value) : (GroupId?)null);
+            .HasConversion(id => id.Value, v => UserId.From(v))
+            .IsRequired();
 
         builder.Property(p => p.BgStatsPlayUuid).IsRequired().HasMaxLength(100);
         builder.Property(p => p.GameName).IsRequired().HasMaxLength(500);
@@ -23,16 +22,11 @@ public class PlayConfiguration : IEntityTypeConfiguration<PlayEntity>
         builder.Property(p => p.LocationName).HasMaxLength(500);
         builder.Property(p => p.ImageUrl).HasMaxLength(1000);
 
-        builder.HasIndex(p => p.BgStatsPlayUuid);
+        builder.HasIndex(p => new { p.BgStatsPlayUuid, p.UploadedById }).IsUnique();
         builder.HasIndex(p => p.DatePlayed);
 
         builder.Property(p => p.UploadId)
             .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UploadId.From(v.Value) : (UploadId?)null);
-
-        builder.HasOne(p => p.Group)
-            .WithMany()
-            .HasForeignKey(p => p.GroupId)
-            .IsRequired(false);
 
         builder.HasOne(p => p.Upload)
             .WithMany(u => u.Plays)

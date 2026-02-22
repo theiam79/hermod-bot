@@ -3,8 +3,7 @@ namespace Hermod.Data.Entities;
 public class PlayEntity
 {
     public PlayId Id { get; set; }
-    public UserId? UploadedById { get; set; }
-    public GroupId? GroupId { get; set; }
+    public UserId UploadedById { get; set; }
     public required string BgStatsPlayUuid { get; set; }
     public required string GameName { get; set; }
     public int? BggGameId { get; set; }
@@ -18,7 +17,6 @@ public class PlayEntity
     public DateTime CreatedAt { get; set; }
     public UploadId? UploadId { get; set; }
 
-    public GroupEntity? Group { get; set; }
     public UploadEntity? Upload { get; set; }
     public List<PlayPlayerEntity> Players { get; set; } = [];
 }

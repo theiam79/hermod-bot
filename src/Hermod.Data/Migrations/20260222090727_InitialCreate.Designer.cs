@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Data.Migrations
 {
     [DbContext(typeof(HermodContext))]
-    [Migration("20260222013715_InitialCreate")]
+    [Migration("20260222090727_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -77,9 +77,6 @@ namespace Hermod.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
-                    b.Property<Guid?>("GroupId")
-                        .HasColumnType("uuid");
-
                     b.Property<string>("ImageUrl")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
@@ -94,18 +91,17 @@ namespace Hermod.Data.Migrations
                     b.Property<Guid?>("UploadId")
                         .HasColumnType("uuid");
 
-                    b.Property<Guid?>("UploadedById")
+                    b.Property<Guid>("UploadedById")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("BgStatsPlayUuid");
-
                     b.HasIndex("DatePlayed");
 
-                    b.HasIndex("GroupId");
-
                     b.HasIndex("UploadId");
+
+                    b.HasIndex("BgStatsPlayUuid", "UploadedById")
+                        .IsUnique();
 
                     b.ToTable("Plays");
                 });
@@ -262,16 +258,10 @@ namespace Hermod.Data.Migrations
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayEntity", b =>
                 {
-                    b.HasOne("Hermod.Data.Entities.GroupEntity", "Group")
-                        .WithMany()
-                        .HasForeignKey("GroupId");
-
                     b.HasOne("Hermod.Data.Entities.UploadEntity", "Upload")
                         .WithMany("Plays")
                         .HasForeignKey("UploadId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Group");
 
                     b.Navigation("Upload");
                 });

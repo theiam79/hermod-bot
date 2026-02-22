@@ -21,8 +21,7 @@ public static class ExtractPlaysHandler
         foreach (var play in result.Plays)
         {
             messages.Add(new PlayExtracted(
-                play, message.GroupId,
-                message.MePlayerUuid, message.UploadId,
+                play, message.MePlayerUuid, message.UploadId,
                 message.UploadedById));
         }
 
