@@ -133,6 +133,9 @@ builder.Host.UseWolverine(opts =>
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.AutoApplyTransactions();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+
+    opts.PublishMessage<Hermod.Messages.SharePlayToGroup>()
+        .ToPostgresqlQueue("bot-inbox");
 });
 
 builder.Services.AddWolverineHttp();
