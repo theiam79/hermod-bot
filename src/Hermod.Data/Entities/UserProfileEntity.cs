@@ -9,6 +9,5 @@ public class UserProfileEntity
     public bool SubscribeToPlays { get; set; } = true;
 
     public List<UserGroupEntity> UserGroups { get; set; } = [];
-    public List<PlayEntity> UploadedPlays { get; set; } = [];
     public List<PlayerMappingEntity> PlayerMappings { get; set; } = [];
 }

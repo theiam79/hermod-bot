@@ -17,7 +17,7 @@ namespace Hermod.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.3")
+                .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -103,8 +103,6 @@ namespace Hermod.Data.Migrations
                     b.HasIndex("GroupId");
 
                     b.HasIndex("UploadId");
-
-                    b.HasIndex("UploadedById");
 
                     b.ToTable("Plays");
                 });
@@ -197,21 +195,19 @@ namespace Hermod.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<byte[]>("FileBytes")
+                    b.Property<string>("FileContent")
                         .IsRequired()
-                        .HasColumnType("bytea");
+                        .HasColumnType("jsonb");
 
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<Guid?>("UploadedById")
+                    b.Property<Guid>("UploadedById")
                         .HasColumnType("uuid");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("UploadedById");
 
                     b.ToTable("Uploads");
                 });
@@ -272,15 +268,9 @@ namespace Hermod.Data.Migrations
                         .HasForeignKey("UploadId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "UploadedBy")
-                        .WithMany("UploadedPlays")
-                        .HasForeignKey("UploadedById");
-
                     b.Navigation("Group");
 
                     b.Navigation("Upload");
-
-                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayPlayerEntity", b =>
@@ -309,16 +299,6 @@ namespace Hermod.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("MappedUser");
-                });
-
-            modelBuilder.Entity("Hermod.Data.Entities.UploadEntity", b =>
-                {
-                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "UploadedBy")
-                        .WithMany()
-                        .HasForeignKey("UploadedById")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("UploadedBy");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.UserGroupEntity", b =>
@@ -358,8 +338,6 @@ namespace Hermod.Data.Migrations
             modelBuilder.Entity("Hermod.Data.Entities.UserProfileEntity", b =>
                 {
                     b.Navigation("PlayerMappings");
-
-                    b.Navigation("UploadedPlays");
 
                     b.Navigation("UserGroups");
                 });

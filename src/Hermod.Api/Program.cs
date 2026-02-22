@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Hermod.Api.Auth;
+using Hermod.Api.Endpoints.Plays;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.AspNetCore.Authentication;
@@ -150,6 +151,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapWolverineEndpoints();
+app.MapUploadEndpoint();
 
 // Apply migrations
 using (var scope = app.Services.CreateScope())

@@ -14,7 +14,7 @@ public static class PlayExtractedHandler
         var entity = new PlayEntity
         {
             Id = PlayId.From(Guid.NewGuid()),
-            UploadedById = null,
+            UploadedById = UserId.From(message.UploadedById),
             UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null,
             GroupId = message.GroupId.HasValue ? GroupId.From(message.GroupId.Value) : null,
             BgStatsPlayUuid = play.Uuid.ToString(),

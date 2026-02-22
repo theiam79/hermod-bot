@@ -1,5 +1,6 @@
 using Hermod.Api.Tests.Auth;
 using Hermod.Api.Tests.Infrastructure;
+using Hermod.Data;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
@@ -52,4 +53,10 @@ public class ApiFixture : WebApplicationFactory<Program>, IAsyncInitializer
     }
 
     public HttpClient CreateAnonymousClient() => CreateClient();
+
+    public HermodContext CreateDbContext()
+    {
+        var scope = Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<HermodContext>();
+    }
 }

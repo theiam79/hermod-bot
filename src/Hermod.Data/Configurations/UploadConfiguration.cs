@@ -13,14 +13,9 @@ public class UploadConfiguration : IEntityTypeConfiguration<UploadEntity>
             .HasConversion(id => id.Value, v => UploadId.From(v));
 
         builder.Property(u => u.UploadedById)
-            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UserId.From(v.Value) : (UserId?)null);
+            .HasConversion(id => id.Value, v => UserId.From(v));
 
-        builder.Property(u => u.FileBytes).IsRequired();
+        builder.Property(u => u.FileContent).IsRequired().HasColumnType("jsonb");
         builder.Property(u => u.FileName).IsRequired().HasMaxLength(255);
-
-        builder.HasOne(u => u.UploadedBy)
-            .WithMany()
-            .HasForeignKey(u => u.UploadedById)
-            .OnDelete(DeleteBehavior.SetNull);
     }
 }

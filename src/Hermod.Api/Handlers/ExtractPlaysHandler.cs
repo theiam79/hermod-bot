@@ -1,4 +1,3 @@
-using System.Text;
 using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
@@ -16,14 +15,15 @@ public static class ExtractPlaysHandler
 
         if (upload is null) return [];
 
-        var result = PlayFileParser.Parse(Encoding.UTF8.GetString(upload.FileBytes));
+        var result = PlayFileParser.Parse(upload.FileContent);
 
         var messages = new OutgoingMessages();
         foreach (var play in result.Plays)
         {
             messages.Add(new PlayExtracted(
                 play, message.GroupId,
-                message.MePlayerUuid, message.UploadId));
+                message.MePlayerUuid, message.UploadId,
+                message.UploadedById));
         }
 
         return messages;

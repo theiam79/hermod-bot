@@ -1,4 +1,3 @@
-using System.Text;
 using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
@@ -16,7 +15,7 @@ public static class DistributeFileHandler
 
         if (upload is null) return [];
 
-        var result = PlayFileParser.Parse(Encoding.UTF8.GetString(upload.FileBytes));
+        var result = PlayFileParser.Parse(upload.FileContent);
 
         // Collect all unique player UUIDs across all plays
         var allPlayerUuids = result.Plays
