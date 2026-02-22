@@ -1,4 +1,4 @@
-namespace Hermod.Api.Messages;
+namespace Hermod.Messages;
 
 public enum PlayChangeType
 {

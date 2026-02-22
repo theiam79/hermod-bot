@@ -20,6 +20,7 @@
     <ProjectReference Include="..\Hermod.ServiceDefaults\Hermod.ServiceDefaults.csproj" />
     <ProjectReference Include="..\Hermod.Data\Hermod.Data.csproj" />
     <ProjectReference Include="..\Hermod.BGStats\Hermod.BGStats.csproj" />
+    <ProjectReference Include="..\Hermod.Messages\Hermod.Messages.csproj" />
   </ItemGroup>
 
 </Project>

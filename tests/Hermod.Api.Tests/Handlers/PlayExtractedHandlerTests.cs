@@ -3,6 +3,7 @@ using Hermod.Api.Messages;
 using Hermod.BGStats.Models;
 using Hermod.Data;
 using Hermod.Data.Entities;
+using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using TUnit.Core;
 
