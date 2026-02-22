@@ -25,7 +25,7 @@ namespace Hermod.Data.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Users",
+                name: "UserProfiles",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -36,7 +36,7 @@ namespace Hermod.Data.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Users", x => x.Id);
+                    table.PrimaryKey("PK_UserProfiles", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -51,9 +51,9 @@ namespace Hermod.Data.Migrations
                 {
                     table.PrimaryKey("PK_PlayerMappings", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_PlayerMappings_Users_MappedUserId",
+                        name: "FK_PlayerMappings_UserProfiles_MappedUserId",
                         column: x => x.MappedUserId,
-                        principalTable: "Users",
+                        principalTable: "UserProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -72,31 +72,11 @@ namespace Hermod.Data.Migrations
                 {
                     table.PrimaryKey("PK_Uploads", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Uploads_Users_UploadedById",
+                        name: "FK_Uploads_UserProfiles_UploadedById",
                         column: x => x.UploadedById,
-                        principalTable: "Users",
+                        principalTable: "UserProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "UserExternalLogins",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    Provider = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: false),
-                    ProviderKey = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_UserExternalLogins", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_UserExternalLogins_Users_UserId",
-                        column: x => x.UserId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -117,9 +97,9 @@ namespace Hermod.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_UserGroups_Users_UserId",
+                        name: "FK_UserGroups_UserProfiles_UserId",
                         column: x => x.UserId,
-                        principalTable: "Users",
+                        principalTable: "UserProfiles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -159,9 +139,9 @@ namespace Hermod.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_Plays_Users_UploadedById",
+                        name: "FK_Plays_UserProfiles_UploadedById",
                         column: x => x.UploadedById,
-                        principalTable: "Users",
+                        principalTable: "UserProfiles",
                         principalColumn: "Id");
                 });
 
@@ -193,9 +173,9 @@ namespace Hermod.Data.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_PlayPlayers_Users_MappedUserId",
+                        name: "FK_PlayPlayers_UserProfiles_MappedUserId",
                         column: x => x.MappedUserId,
-                        principalTable: "Users",
+                        principalTable: "UserProfiles",
                         principalColumn: "Id");
                 });
 
@@ -251,17 +231,6 @@ namespace Hermod.Data.Migrations
                 column: "UploadedById");
 
             migrationBuilder.CreateIndex(
-                name: "IX_UserExternalLogins_Provider_ProviderKey",
-                table: "UserExternalLogins",
-                columns: new[] { "Provider", "ProviderKey" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_UserExternalLogins_UserId",
-                table: "UserExternalLogins",
-                column: "UserId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_UserGroups_GroupId",
                 table: "UserGroups",
                 column: "GroupId");
@@ -277,9 +246,6 @@ namespace Hermod.Data.Migrations
                 name: "PlayPlayers");
 
             migrationBuilder.DropTable(
-                name: "UserExternalLogins");
-
-            migrationBuilder.DropTable(
                 name: "UserGroups");
 
             migrationBuilder.DropTable(
@@ -292,7 +258,7 @@ namespace Hermod.Data.Migrations
                 name: "Uploads");
 
             migrationBuilder.DropTable(
-                name: "Users");
+                name: "UserProfiles");
         }
     }
 }

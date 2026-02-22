@@ -6,5 +6,5 @@ public class PlayerMappingEntity
     public required string BgStatsPlayerUuid { get; set; }
     public UserId MappedUserId { get; set; }
 
-    public UserEntity MappedUser { get; set; } = null!;
+    public UserProfileEntity MappedUser { get; set; } = null!;
 }

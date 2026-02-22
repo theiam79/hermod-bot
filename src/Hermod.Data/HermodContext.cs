@@ -5,13 +5,12 @@ namespace Hermod.Data;
 
 public class HermodContext(DbContextOptions<HermodContext> options) : DbContext(options)
 {
-    public DbSet<UserEntity> Users => Set<UserEntity>();
+    public DbSet<UserProfileEntity> UserProfiles => Set<UserProfileEntity>();
     public DbSet<GroupEntity> Groups => Set<GroupEntity>();
     public DbSet<UserGroupEntity> UserGroups => Set<UserGroupEntity>();
     public DbSet<PlayEntity> Plays => Set<PlayEntity>();
     public DbSet<PlayPlayerEntity> PlayPlayers => Set<PlayPlayerEntity>();
     public DbSet<PlayerMappingEntity> PlayerMappings => Set<PlayerMappingEntity>();
-    public DbSet<UserExternalLoginEntity> UserExternalLogins => Set<UserExternalLoginEntity>();
     public DbSet<UploadEntity> Uploads => Set<UploadEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

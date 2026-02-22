@@ -1,6 +1,6 @@
 namespace Hermod.Data.Entities;
 
-public class UserEntity
+public class UserProfileEntity
 {
     public UserId Id { get; set; }
     public required string DisplayName { get; set; }
@@ -11,5 +11,4 @@ public class UserEntity
     public List<UserGroupEntity> UserGroups { get; set; } = [];
     public List<PlayEntity> UploadedPlays { get; set; } = [];
     public List<PlayerMappingEntity> PlayerMappings { get; set; } = [];
-    public List<UserExternalLoginEntity> ExternalLogins { get; set; } = [];
 }

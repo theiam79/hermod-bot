@@ -18,7 +18,7 @@ public class PlayEntity
     public DateTime CreatedAt { get; set; }
     public UploadId? UploadId { get; set; }
 
-    public UserEntity? UploadedBy { get; set; }
+    public UserProfileEntity? UploadedBy { get; set; }
     public GroupEntity? Group { get; set; }
     public UploadEntity? Upload { get; set; }
     public List<PlayPlayerEntity> Players { get; set; } = [];

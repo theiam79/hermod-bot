@@ -84,6 +84,38 @@ Hermod.slnx
 - Sample .bgsplay files in `sample-play-files/` (gitignored, not committed)
 - Test projects copy sample files to output via csproj `<None Include>` with `CopyToOutputDirectory`
 
+### TUnit lifecycle: use `[ClassDataSource]` property injection chains
+
+All shared test infrastructure (containers, fixtures, factories) **must** use TUnit's `[ClassDataSource<T>(Shared = SharedType.PerTestSession)]` property injection — never manual `[Before(Class)]`/`[After(Class)]` hooks or static fields. This gives TUnit control over initialization order and, critically, **reverse-order disposal** (fixtures dispose before their dependencies).
+
+- Implement `IAsyncInitializer` (from `TUnit.Core.Interfaces`) for setup
+- Implement `IAsyncDisposable` for teardown
+- Express dependencies as `[ClassDataSource<T>]` properties — TUnit resolves the graph automatically
+- Tests consume the top-level fixture via `[ClassDataSource<ApiFixture>]` property injection
+
+Example dependency chain (see `tests/Hermod.Api.Tests/Infrastructure/`):
+```
+ContainerRuntime (detects Podman/Docker)
+  ↓ depended on by
+HermodDatabase / AuthDatabase (Testcontainers PostgreSQL)
+  ↓ depended on by
+ApiFixture (WebApplicationFactory<Program>)
+  ↓ depended on by
+Test classes
+```
+
+Each layer declares its dependency:
+```csharp
+public class HermodDatabase : IAsyncInitializer, IAsyncDisposable
+{
+    [ClassDataSource<ContainerRuntime>(Shared = SharedType.PerTestSession)]
+    public required ContainerRuntime Runtime { get; init; }
+    // ...
+}
+```
+
+This ensures `WebApplicationFactory` (and Wolverine) disposes **before** the Postgres containers are torn down.
+
 ## Build & Run
 
 ```bash

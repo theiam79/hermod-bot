@@ -4,9 +4,9 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Hermod.Data.Configurations;
 
-public class UserConfiguration : IEntityTypeConfiguration<UserEntity>
+public class UserProfileConfiguration : IEntityTypeConfiguration<UserProfileEntity>
 {
-    public void Configure(EntityTypeBuilder<UserEntity> builder)
+    public void Configure(EntityTypeBuilder<UserProfileEntity> builder)
     {
         builder.HasKey(u => u.Id);
         builder.Property(u => u.Id)

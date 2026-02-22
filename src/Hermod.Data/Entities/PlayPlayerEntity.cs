@@ -17,5 +17,5 @@ public class PlayPlayerEntity
     public bool StartPlayer { get; set; }
 
     public PlayEntity Play { get; set; } = null!;
-    public UserEntity? MappedUser { get; set; }
+    public UserProfileEntity? MappedUser { get; set; }
 }

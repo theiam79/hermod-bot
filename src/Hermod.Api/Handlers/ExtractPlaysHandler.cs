@@ -22,7 +22,7 @@ public static class ExtractPlaysHandler
         foreach (var play in result.Plays)
         {
             messages.Add(new PlayExtracted(
-                play, message.GroupId, message.SenderDiscordId,
+                play, message.GroupId,
                 message.MePlayerUuid, message.UploadId));
         }
 

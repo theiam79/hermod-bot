@@ -1,5 +1,4 @@
 using Hermod.Api.Messages;
-using Hermod.BGStats.Models;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -12,34 +11,10 @@ public static class PlayExtractedHandler
     {
         var play = message.ParsedPlay;
 
-        UserId? uploadedById = null;
-        if (message.SenderDiscordId is not null)
-        {
-            uploadedById = await FindOrCreateUserAsync(db, message.SenderDiscordId);
-        }
-
-        // Auto-link uploader via MePlayerUuid
-        if (uploadedById is not null && message.MePlayerUuid is { } meUuid)
-        {
-            var meUuidStr = meUuid.ToString();
-            var exists = await db.PlayerMappings
-                .AnyAsync(pm => pm.BgStatsPlayerUuid == meUuidStr && pm.MappedUserId == uploadedById.Value);
-
-            if (!exists)
-            {
-                db.PlayerMappings.Add(new PlayerMappingEntity
-                {
-                    Id = PlayerMappingId.From(Guid.NewGuid()),
-                    BgStatsPlayerUuid = meUuidStr,
-                    MappedUserId = uploadedById.Value,
-                });
-            }
-        }
-
         var entity = new PlayEntity
         {
             Id = PlayId.From(Guid.NewGuid()),
-            UploadedById = uploadedById,
+            UploadedById = null,
             UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null,
             GroupId = message.GroupId.HasValue ? GroupId.From(message.GroupId.Value) : null,
             BgStatsPlayUuid = play.Uuid.ToString(),
@@ -92,36 +67,5 @@ public static class PlayExtractedHandler
         }
 
         return new PlayCreated(entity.Id.Value, message.GroupId);
-    }
-
-    private static async Task<UserId> FindOrCreateUserAsync(HermodContext db, string discordId)
-    {
-        const string provider = "Discord";
-
-        var login = await db.UserExternalLogins
-            .FirstOrDefaultAsync(l => l.Provider == provider && l.ProviderKey == discordId);
-
-        if (login is not null)
-        {
-            return login.UserId;
-        }
-
-        var user = new UserEntity
-        {
-            Id = UserId.From(Guid.NewGuid()),
-            DisplayName = $"Discord:{discordId}",   // placeholder until profile is fetched
-        };
-
-        db.Users.Add(user);
-
-        db.UserExternalLogins.Add(new UserExternalLoginEntity
-        {
-            Id = ExternalLoginId.From(Guid.NewGuid()),
-            UserId = user.Id,
-            Provider = provider,
-            ProviderKey = discordId,
-        });
-
-        return user.Id;
     }
 }

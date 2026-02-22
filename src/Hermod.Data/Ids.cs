@@ -3,9 +3,6 @@ using Vogen;
 namespace Hermod.Data;
 
 [ValueObject<Guid>]
-public readonly partial struct ExternalLoginId;
-
-[ValueObject<Guid>]
 public readonly partial struct UserId;
 
 [ValueObject<Guid>]

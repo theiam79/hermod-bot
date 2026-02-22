@@ -8,6 +8,6 @@ public class UploadEntity
     public required string FileName { get; set; }
     public DateTime CreatedAt { get; set; }
 
-    public UserEntity? UploadedBy { get; set; }
+    public UserProfileEntity? UploadedBy { get; set; }
     public List<PlayEntity> Plays { get; set; } = [];
 }

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Data.Migrations
 {
     [DbContext(typeof(HermodContext))]
-    [Migration("20260221221809_InitialCreate")]
+    [Migration("20260222000704_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -219,7 +219,27 @@ namespace Hermod.Data.Migrations
                     b.ToTable("Uploads");
                 });
 
-            modelBuilder.Entity("Hermod.Data.Entities.UserEntity", b =>
+            modelBuilder.Entity("Hermod.Data.Entities.UserGroupEntity", b =>
+                {
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.HasKey("UserId", "GroupId");
+
+                    b.HasIndex("GroupId");
+
+                    b.ToTable("UserGroups");
+                });
+
+            modelBuilder.Entity("Hermod.Data.Entities.UserProfileEntity", b =>
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
@@ -241,55 +261,7 @@ namespace Hermod.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Users");
-                });
-
-            modelBuilder.Entity("Hermod.Data.Entities.UserExternalLoginEntity", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Provider")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.Property<string>("ProviderKey")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.HasIndex("Provider", "ProviderKey")
-                        .IsUnique();
-
-                    b.ToTable("UserExternalLogins");
-                });
-
-            modelBuilder.Entity("Hermod.Data.Entities.UserGroupEntity", b =>
-                {
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("GroupId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Role")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("character varying(50)");
-
-                    b.HasKey("UserId", "GroupId");
-
-                    b.HasIndex("GroupId");
-
-                    b.ToTable("UserGroups");
+                    b.ToTable("UserProfiles");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayEntity", b =>
@@ -303,7 +275,7 @@ namespace Hermod.Data.Migrations
                         .HasForeignKey("UploadId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "UploadedBy")
+                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "UploadedBy")
                         .WithMany("UploadedPlays")
                         .HasForeignKey("UploadedById");
 
@@ -316,7 +288,7 @@ namespace Hermod.Data.Migrations
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayPlayerEntity", b =>
                 {
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "MappedUser")
+                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "MappedUser")
                         .WithMany()
                         .HasForeignKey("MappedUserId");
 
@@ -333,7 +305,7 @@ namespace Hermod.Data.Migrations
 
             modelBuilder.Entity("Hermod.Data.Entities.PlayerMappingEntity", b =>
                 {
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "MappedUser")
+                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "MappedUser")
                         .WithMany("PlayerMappings")
                         .HasForeignKey("MappedUserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -344,23 +316,12 @@ namespace Hermod.Data.Migrations
 
             modelBuilder.Entity("Hermod.Data.Entities.UploadEntity", b =>
                 {
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "UploadedBy")
+                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "UploadedBy")
                         .WithMany()
                         .HasForeignKey("UploadedById")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("UploadedBy");
-                });
-
-            modelBuilder.Entity("Hermod.Data.Entities.UserExternalLoginEntity", b =>
-                {
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "User")
-                        .WithMany("ExternalLogins")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Hermod.Data.Entities.UserGroupEntity", b =>
@@ -371,7 +332,7 @@ namespace Hermod.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("Hermod.Data.Entities.UserEntity", "User")
+                    b.HasOne("Hermod.Data.Entities.UserProfileEntity", "User")
                         .WithMany("UserGroups")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -397,10 +358,8 @@ namespace Hermod.Data.Migrations
                     b.Navigation("Plays");
                 });
 
-            modelBuilder.Entity("Hermod.Data.Entities.UserEntity", b =>
+            modelBuilder.Entity("Hermod.Data.Entities.UserProfileEntity", b =>
                 {
-                    b.Navigation("ExternalLogins");
-
                     b.Navigation("PlayerMappings");
 
                     b.Navigation("UploadedPlays");

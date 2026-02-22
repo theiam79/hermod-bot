@@ -8,5 +8,6 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />
+    <Project Path="tests/Hermod.Api.Tests/Hermod.Api.Tests.csproj" />
   </Folder>
 </Solution>
