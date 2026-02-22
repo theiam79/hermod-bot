@@ -21,14 +21,16 @@ builder.Services.AddHttpClient();
 var hermodConnectionString = builder.Configuration.GetConnectionString("hermod-db")
     ?? throw new InvalidOperationException("ConnectionStrings:hermod-db is not configured.");
 
-var authConnectionString = builder.Configuration.GetConnectionString("auth-db")
-    ?? throw new InvalidOperationException("ConnectionStrings:auth-db is not configured.");
-
 builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
     options.UseNpgsql(hermodConnectionString));
 
-builder.Services.AddDbContext<AuthDbContext>(options =>
-    options.UseNpgsql(authConnectionString));
+builder.EnrichNpgsqlDbContext<HermodContext>(settings =>
+{
+    // Wolverine manages retries at the handler level
+    settings.DisableRetry = true;
+});
+
+builder.AddNpgsqlDbContext<AuthDbContext>("auth-db");
 
 // Authentication
 builder.Services.AddAuthentication(options =>
