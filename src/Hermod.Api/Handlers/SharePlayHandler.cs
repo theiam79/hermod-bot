@@ -17,12 +17,6 @@ public static class SharePlayHandler
             .Select(ug => ug.GroupId)
             .ToListAsync();
 
-        var messages = new OutgoingMessages();
-        foreach (var groupId in groupIds)
-        {
-            messages.Add(new SharePlayToGroup(message.PlayId, groupId.Value, message.ChangeType));
-        }
-
-        return messages;
+        return [..groupIds.ConvertAll(gid => new SharePlayToGroup(message.PlayId, gid.Value, message.ChangeType))];
     }
 }
