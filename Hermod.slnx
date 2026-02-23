@@ -6,6 +6,7 @@
     <Project Path="src/Hermod.BGStats/Hermod.BGStats.csproj" />
     <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
     <Project Path="src/Hermod.Api/Hermod.Api.csproj" />
+    <Project Path="src/Hermod.Bot/Hermod.Bot.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />

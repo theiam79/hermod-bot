@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Hermod.Api\Hermod.Api.csproj" />
+    <ProjectReference Include="..\Hermod.Bot\Hermod.Bot.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
