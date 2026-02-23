@@ -458,5 +458,6 @@ $RECYCLE.BIN/
 *.db-shm
 *.db-wal
 sample-play-files/
+docs/handover.md
 .claude/*
 !.claude/skills/
