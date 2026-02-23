@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
+using Wolverine.ErrorHandling;
 using Wolverine.Http;
 using Wolverine.Postgresql;
 
@@ -138,6 +139,9 @@ builder.Host.UseWolverine(opts =>
         .ToPostgresqlQueue("bot-inbox");
 
     opts.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
+
+    opts.OnException<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>()
+        .RetryWithCooldown(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(250));
 });
 
 builder.Services.AddWolverineHttp();
