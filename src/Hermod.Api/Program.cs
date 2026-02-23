@@ -136,6 +136,8 @@ builder.Host.UseWolverine(opts =>
 
     opts.PublishMessage<Hermod.Messages.SharePlayToGroup>()
         .ToPostgresqlQueue("bot-inbox");
+
+    opts.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
 });
 
 builder.Services.AddWolverineHttp();

@@ -34,7 +34,7 @@ public static class PlayExtractedHandler
                 GameName = play.Game.Name,
                 BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null,
                 GameThumbnailUrl = string.IsNullOrEmpty(play.Game.ThumbnailUrl) ? null : play.Game.ThumbnailUrl,
-                DatePlayed = play.DatePlayed,
+                DatePlayed = DateTime.SpecifyKind(play.DatePlayed, DateTimeKind.Utc),
                 Duration = play.Duration > TimeSpan.Zero ? play.Duration : null,
                 LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name,
                 Rounds = play.Rounds > 0 ? play.Rounds : null,
@@ -53,7 +53,7 @@ public static class PlayExtractedHandler
             entity.GameName = play.Game.Name;
             entity.BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null;
             entity.GameThumbnailUrl = string.IsNullOrEmpty(play.Game.ThumbnailUrl) ? null : play.Game.ThumbnailUrl;
-            entity.DatePlayed = play.DatePlayed;
+            entity.DatePlayed = DateTime.SpecifyKind(play.DatePlayed, DateTimeKind.Utc);
             entity.Duration = play.Duration > TimeSpan.Zero ? play.Duration : null;
             entity.LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name;
             entity.Rounds = play.Rounds > 0 ? play.Rounds : null;
