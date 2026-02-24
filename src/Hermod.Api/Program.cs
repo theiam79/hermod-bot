@@ -136,6 +136,8 @@ builder.Host.UseWolverine(opts =>
     opts.Policies.AutoApplyTransactions();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
 
+    opts.ListenToPostgresqlQueue("api-inbox");
+
     opts.PublishMessage<Hermod.Messages.SharePlayToGroup>()
         .ToPostgresqlQueue("bot-inbox");
 
