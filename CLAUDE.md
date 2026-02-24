@@ -4,25 +4,6 @@
 
 Hermod is a play-sharing platform for board games recorded in the BGStats app. Originally a single-server Discord bot, it is being rewritten as an API-first platform with Discord as one client and a web frontend.
 
-- **Repo**: `/mnt/data/repos/hermod-bot`
-- **Architecture doc**: `docs/architecture.md`
-
-## Stack
-
-- **.NET 10** (SDK 10.0.103)
-- **Aspire** for local dev orchestration (AppHost pattern)
-  - Aspire CLI daily builds installed at `~/.aspire/bin/aspire`
-- **Wolverine.Fx** for command/handler pattern, HTTP endpoint routing, and cross-process messaging
-  - `WolverineFx.Http` replaces raw Minimal API `MapGet`/`MapPost` for endpoint routing
-  - `WolverineFx.Postgresql` for PostgreSQL transport (Bot ↔ API messaging)
-  - `AutoApplyTransactions()` + `UseEntityFrameworkCoreTransactions()` for unit-of-work
-- **EF Core + PostgreSQL** for data access (managed by Aspire via container)
-  - Use **Aspire client integration packages** (e.g. `Aspire.Npgsql.EntityFrameworkCore.PostgreSQL`) over raw provider packages for health checks, OpenTelemetry, and retry logic
-  - When a third-party library owns DbContext registration (e.g. Wolverine), use `Enrich*` to layer on Aspire telemetry
-- **Discord.Net 3.x + Discord.Addons.Hosting 6.x** — bot runs in separate `Hermod.Bot` project
-- **Vite + React + TypeScript** for the web frontend (planned)
-- **TUnit** for testing (NOT xUnit/NUnit/MSTest)
-
 ## Key Libraries
 
 | Library | Purpose | Notes |
@@ -37,38 +18,6 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 | **Aspire.Npgsql.EntityFrameworkCore.PostgreSQL** | Aspire EF Core client integration | Prefer over raw `Npgsql.EntityFrameworkCore.PostgreSQL` in service projects |
 | **TUnit** | Testing framework | `OutputType=Exe`, no `Microsoft.NET.Test.Sdk` needed |
 | **AspNet.Security.OAuth.Discord** | Discord OAuth provider | For user authentication (Phase 4) |
-
-## What We Do NOT Use
-
-- No MediatR (Wolverine replaces this pattern)
-- No AutoMapper (use Mapperly)
-- No FluentValidation
-- No FluentResults
-- No xUnit/NUnit/MSTest (use TUnit)
-
-## Solution Structure
-
-```
-Hermod.slnx
-├── src/
-│   ├── Hermod.AppHost/          # Aspire orchestrator
-│   ├── Hermod.ServiceDefaults/  # Shared Aspire config
-│   ├── Hermod.Messages/         # Shared message/command/result records (no DI deps)
-│   ├── Hermod.Api/              # ASP.NET API — platform-agnostic data gateway
-│   │   ├── Endpoints/           # Wolverine HTTP endpoint handlers
-│   │   └── Handlers/            # Wolverine message handlers (data operations)
-│   ├── Hermod.Bot/              # Discord bot — separate process
-│   │   ├── Services/            # Discord hosted services (BotService, GuildHandler, etc.)
-│   │   ├── Modules/             # Slash command modules (InfoModule, ClaimPlayerModule)
-│   │   ├── Handlers/            # Wolverine message handlers (Discord operations)
-│   │   └── Data/                # BotDbContext, Discord-specific entities
-│   ├── Hermod.Data/             # EF Core entities, HermodContext, config, migrations
-│   └── Hermod.BGStats/          # .bgsplay file parsing (standalone, no DI)
-├── tests/
-│   └── Hermod.BGStats.Tests/    # TUnit tests for parsing
-├── legacy/                      # Old .NET 6 code (reference only, do not modify)
-└── sample-play-files/           # Test data (gitignored)
-```
 
 ## Architecture Rules
 
@@ -95,29 +44,6 @@ All shared test infrastructure (containers, fixtures, factories) **must** use TU
 - Implement `IAsyncDisposable` for teardown
 - Express dependencies as `[ClassDataSource<T>]` properties — TUnit resolves the graph automatically
 - Tests consume the top-level fixture via `[ClassDataSource<ApiFixture>]` property injection
-
-Example dependency chain (see `tests/Hermod.Api.Tests/Infrastructure/`):
-```
-ContainerRuntime (detects Podman/Docker)
-  ↓ depended on by
-HermodDatabase / AuthDatabase (Testcontainers PostgreSQL)
-  ↓ depended on by
-ApiFixture (WebApplicationFactory<Program>)
-  ↓ depended on by
-Test classes
-```
-
-Each layer declares its dependency:
-```csharp
-public class HermodDatabase : IAsyncInitializer, IAsyncDisposable
-{
-    [ClassDataSource<ContainerRuntime>(Shared = SharedType.PerTestSession)]
-    public required ContainerRuntime Runtime { get; init; }
-    // ...
-}
-```
-
-This ensures `WebApplicationFactory` (and Wolverine) disposes **before** the Postgres containers are torn down.
 
 ## Build & Run
 
