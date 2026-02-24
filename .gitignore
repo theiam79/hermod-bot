@@ -459,5 +459,7 @@ $RECYCLE.BIN/
 *.db-wal
 sample-play-files/
 docs/handover.md
+src/Hermod.Web/.svelte-kit/
+src/Hermod.Web/build/
 .claude/*
 !.claude/skills/
