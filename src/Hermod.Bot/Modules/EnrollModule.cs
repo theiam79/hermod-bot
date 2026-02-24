@@ -40,7 +40,7 @@ public class EnrollModule(
 
         var result = await bus.InvokeAsync<EnrollmentResult>(
             new EnrollInGroup(discordId, mapping.GroupId),
-            timeout: TimeSpan.FromSeconds(30));
+            timeout: TimeSpan.FromSeconds(10));
 
         var message = result.Status switch
         {

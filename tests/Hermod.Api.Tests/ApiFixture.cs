@@ -19,6 +19,9 @@ public class ApiFixture : WebApplicationFactory<Program>, IAsyncInitializer
     [ClassDataSource<AuthDatabase>(Shared = SharedType.PerTestSession)]
     public required AuthDatabase AuthDb { get; init; }
 
+    [ClassDataSource<NatsServer>(Shared = SharedType.PerTestSession)]
+    public required NatsServer Nats { get; init; }
+
     public Task InitializeAsync()
     {
         _ = Server;
@@ -31,6 +34,7 @@ public class ApiFixture : WebApplicationFactory<Program>, IAsyncInitializer
 
         builder.UseSetting("ConnectionStrings:hermod-db", HermodDb.ConnectionString);
         builder.UseSetting("ConnectionStrings:auth-db", AuthDb.ConnectionString);
+        builder.UseSetting("ConnectionStrings:nats", Nats.ConnectionString);
         builder.UseSetting("Discord:ClientId", "test-client-id");
         builder.UseSetting("Discord:ClientSecret", "test-client-secret");
 

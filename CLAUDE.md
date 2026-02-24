@@ -10,7 +10,8 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 |---------|---------|-------|
 | **Vogen** (8.x) | Strongly-typed value object IDs | `PrivateAssets="all"` in csproj. Earlier versions (5.x) have CS1040 errors on .NET 10 |
 | **WolverineFx.Http** (5.x) | HTTP endpoint routing + command/handler pattern | Replaces raw Minimal API routing |
-| **WolverineFx.Postgresql** (5.x) | PostgreSQL transport for cross-process messaging | Bot ↔ API communication |
+| **WolverineFx.Nats** (5.x) | NATS transport for cross-process messaging | Bot ↔ API communication via Core NATS subjects |
+| **WolverineFx.Postgresql** (5.x) | PostgreSQL message persistence (API only) | Provides `DatabaseSettings` for EF Core integration |
 | **Mapperly** (4.x) | Source-generated object mapping | `PrivateAssets="all"` in csproj |
 | **NCalcSync** (5.3.0) | Score expression evaluation | Note: version 5.2.12 does not exist on NuGet |
 | **Discord.Net** (3.x) | Discord bot framework | Only in Hermod.Bot |
@@ -23,7 +24,7 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. O
 
 - **End clients do not access the core database** — Discord modules/services (and any future clients) must never reference `HermodContext` or `Hermod.Data`. All data access goes through Wolverine commands/queries via `IMessageBus`.
 - **Core data model is platform-agnostic** — no Discord/platform-specific fields in `Hermod.Data` entities. Client-specific data lives in the client project (e.g. `BotDbContext` in `Hermod.Bot`).
-- **Bot runs in Hermod.Bot** — separate process from the API, communicating via Wolverine PostgreSQL transport
+- **Bot runs in Hermod.Bot** — separate process from the API, communicating via Wolverine NATS transport
 - **API is the single data gateway** — only Hermod.Api references Hermod.Data
 - **User → API auth**: HttpOnly cookie sessions via Discord OAuth (BFF pattern, Phase 4)
 - **BGStats** is a standalone parsing library with no framework dependencies
@@ -86,7 +87,7 @@ If a build leaves unexpected state, delete `bin/` and `obj/` manually and rebuil
 - EF Core fluent configuration in `Configurations/` directory (one file per entity)
 - EF Core migrations for schema changes (not `EnsureCreatedAsync`)
 - **Wolverine message cascade**: handlers return the next message type (or `T?` for conditional dispatch — returning `null` skips the cascade)
-- **Wolverine PostgreSQL transport**: Api listens on `api-inbox`, Bot listens on `bot-inbox`. Commands/events are routed via `PublishMessage<T>().ToPostgresqlQueue()`.
+- **Wolverine NATS transport**: Api listens on `hermod.api`, Bot listens on `hermod.bot`. Commands/events are routed via `PublishMessage<T>().ToNatsSubject()`. Core NATS (at-most-once, in-memory) — no JetStream.
 - **Discord modules are thin** — validate input, dispatch Wolverine command/query via `IMessageBus`, respond to user
 - **Discord modules**: use `partial class` to split a slash command group across files (e.g. `InfoModule.cs` + `InfoModule.Admin.cs`) to avoid Discord.Net group registration conflicts
 - **Singleton Discord services needing scoped services**: inject `IServiceScopeFactory`, create a scope per operation with `await using var scope = _scopeFactory.CreateAsyncScope()`

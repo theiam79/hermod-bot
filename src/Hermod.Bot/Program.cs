@@ -7,13 +7,13 @@ using Hermod.Bot.Services;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
-using Wolverine.Postgresql;
+using Wolverine.Nats;
 
 var builder = Host.CreateApplicationBuilder(args);
 builder.AddServiceDefaults();
 
-var hermodConnectionString = builder.Configuration.GetConnectionString("hermod-db")
-    ?? throw new InvalidOperationException("Missing required connection string 'hermod-db'.");
+var natsUrl = builder.Configuration.GetConnectionString("nats")
+    ?? throw new InvalidOperationException("ConnectionStrings:nats is not configured.");
 
 builder.AddNpgsqlDbContext<BotDbContext>("hermod-db");
 
@@ -40,18 +40,21 @@ builder.Services.AddHostedService<GuildEventService>();
 
 builder.UseWolverine(opts =>
 {
-    opts.PersistMessagesWithPostgresql(hermodConnectionString);
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
-    opts.ListenToPostgresqlQueue("bot-inbox");
+
+    opts.UseNats(natsUrl)
+        .AutoProvision();
+
+    opts.ListenToNatsSubject("hermod.bot");
 
     opts.PublishMessage<RegisterGuild>()
-        .ToPostgresqlQueue("api-inbox");
+        .ToNatsSubject("hermod.api");
 
     opts.PublishMessage<UpdateGroupSharing>()
-        .ToPostgresqlQueue("api-inbox");
+        .ToNatsSubject("hermod.api");
 
     opts.PublishMessage<EnrollInGroup>()
-        .ToPostgresqlQueue("api-inbox");
+        .ToNatsSubject("hermod.api");
 });
 
 var host = builder.Build();

@@ -140,7 +140,7 @@ public class GuildEventService(
     {
         var registered = await bus.InvokeAsync<GuildRegistered>(
             new RegisterGuild(discordGuildId, guildName),
-            timeout: TimeSpan.FromSeconds(30));
+            timeout: TimeSpan.FromSeconds(10));
 
         var existing = await db.GuildMappings
             .FirstOrDefaultAsync(m => m.DiscordGuildId == discordGuildId);

@@ -10,6 +10,7 @@ using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
 using Microsoft.AspNetCore.HttpOverrides;
 using Wolverine.Http;
+using Wolverine.Nats;
 using Wolverine.Postgresql;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -22,6 +23,9 @@ builder.Services.AddHttpClient();
 
 var hermodConnectionString = builder.Configuration.GetConnectionString("hermod-db")
     ?? throw new InvalidOperationException("ConnectionStrings:hermod-db is not configured.");
+
+var natsUrl = builder.Configuration.GetConnectionString("nats")
+    ?? throw new InvalidOperationException("ConnectionStrings:nats is not configured.");
 
 builder.Services.AddDbContextWithWolverineIntegration<HermodContext>(options =>
     options.UseNpgsql(hermodConnectionString));
@@ -136,10 +140,13 @@ builder.Host.UseWolverine(opts =>
     opts.Policies.AutoApplyTransactions();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
 
-    opts.ListenToPostgresqlQueue("api-inbox");
+    opts.UseNats(natsUrl)
+        .AutoProvision();
+
+    opts.ListenToNatsSubject("hermod.api");
 
     opts.PublishMessage<Hermod.Messages.SharePlayToGroup>()
-        .ToPostgresqlQueue("bot-inbox");
+        .ToNatsSubject("hermod.bot");
 
     opts.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
 

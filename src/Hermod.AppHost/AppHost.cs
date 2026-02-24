@@ -10,19 +10,25 @@ var postgres = builder.AddPostgres("postgres")
 var hermodDb = postgres.AddDatabase("hermod-db");
 var authDb = postgres.AddDatabase("auth-db");
 
+var nats = builder.AddNats("nats");
+
 var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
     .WithReference(hermodDb)
     .WithReference(authDb)
+    .WithReference(nats)
     .WithEnvironment("Discord__ClientId", discordClientId)
     .WithEnvironment("Discord__ClientSecret", discordClientSecret)
     .WaitFor(hermodDb)
-    .WaitFor(authDb);
+    .WaitFor(authDb)
+    .WaitFor(nats);
 
 var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
     .WithReference(hermodDb)
+    .WithReference(nats)
     .WithEnvironment("Discord__Token", discordToken)
     .WithEnvironment("WebApp__BaseUrl", "http://localhost:8080")
-    .WaitFor(hermodDb);
+    .WaitFor(hermodDb)
+    .WaitFor(nats);
 
 var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
     .WithReference(api)
