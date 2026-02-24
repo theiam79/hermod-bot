@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -33,5 +34,22 @@ public static class GroupEndpoints
             return Results.NotFound();
 
         return Results.Ok(new GroupResponse(group.Id.Value, group.Name, group.AllowSharing));
+    }
+
+    [WolverineGet("/api/groups")]
+    public static async Task<IResult> List(ClaimsPrincipal user, HermodContext db)
+    {
+        var userIdClaim = user.FindFirstValue("hermod:user_id");
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var uid))
+            return Results.Unauthorized();
+
+        var userId = UserId.From(uid);
+
+        var groups = await db.UserGroups
+            .Where(ug => ug.UserId == userId)
+            .Select(ug => new GroupResponse(ug.Group.Id.Value, ug.Group.Name, ug.Group.AllowSharing))
+            .ToListAsync();
+
+        return Results.Ok(groups);
     }
 }

@@ -5,7 +5,8 @@ var discordClientId = builder.AddParameter("discord-client-id");
 var discordClientSecret = builder.AddParameter("discord-client-secret", secret: true);
 
 var postgres = builder.AddPostgres("postgres")
-    .WithDataVolume();
+    .WithDataVolume()
+    .WithPgAdmin();
 var hermodDb = postgres.AddDatabase("hermod-db");
 var authDb = postgres.AddDatabase("auth-db");
 
@@ -36,10 +37,16 @@ builder.AddYarp("hermod-gateway")
     .WithHostHttpsPort(8443)
     .WithConfiguration(yarp =>
     {
-        yarp.AddRoute("api/{**catch-all}", api);
-        yarp.AddRoute("auth/{**catch-all}", api);
-        yarp.AddRoute("signin-discord", api);
+        // Publish mode: YARP routes API traffic directly
+        if (builder.ExecutionContext.IsPublishMode)
+        {
+            yarp.AddRoute("api/{**catch-all}", api);
+            yarp.AddRoute("auth/{**catch-all}", api);
+            yarp.AddRoute("signin-discord", api);
+        }
 
+        // Run mode: everything goes to Vite (its proxy handles API routing)
+        // Publish mode: catch-all serves static files via PublishWithStaticFiles
         if (builder.ExecutionContext.IsRunMode)
         {
             yarp.AddRoute("{**catch-all}", frontend);

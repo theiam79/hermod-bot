@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
+using Microsoft.AspNetCore.HttpOverrides;
 using Wolverine.Http;
 using Wolverine.Postgresql;
 
@@ -148,6 +149,14 @@ builder.Services.AddWolverineHttp();
 
 
 var app = builder.Build();
+
+var forwardedHeadersOptions = new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+};
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+app.UseForwardedHeaders(forwardedHeadersOptions);
 
 app.MapDefaultEndpoints();
 
