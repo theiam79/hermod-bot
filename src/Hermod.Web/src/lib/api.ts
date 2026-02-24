@@ -59,6 +59,15 @@ export async function fetchGroups(): Promise<GroupSummary[]> {
 	return res.json();
 }
 
+export async function joinGroup(groupId: string): Promise<{ status: 'joined' | 'already_member' | 'not_found' | 'unauthorized' | 'error' }> {
+	const res = await fetch(`/api/groups/${groupId}/membership`, { method: 'PUT' });
+	if (res.status === 201) return { status: 'joined' };
+	if (res.status === 204) return { status: 'already_member' };
+	if (res.status === 404) return { status: 'not_found' };
+	if (res.status === 401) return { status: 'unauthorized' };
+	return { status: 'error' };
+}
+
 export async function uploadPlayFile(file: File): Promise<{ ok: true; result: UploadResult } | { ok: false; error: string }> {
 	const form = new FormData();
 	form.append('file', file);

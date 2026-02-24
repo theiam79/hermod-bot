@@ -1,3 +1,4 @@
+using Hermod.Api.Auth;
 using Hermod.Api.Tests.Auth;
 using Hermod.Api.Tests.Infrastructure;
 using Hermod.Data;
@@ -58,5 +59,11 @@ public class ApiFixture : WebApplicationFactory<Program>, IAsyncInitializer
     {
         var scope = Services.CreateScope();
         return scope.ServiceProvider.GetRequiredService<HermodContext>();
+    }
+
+    public AuthDbContext CreateAuthDbContext()
+    {
+        var scope = Services.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<AuthDbContext>();
     }
 }

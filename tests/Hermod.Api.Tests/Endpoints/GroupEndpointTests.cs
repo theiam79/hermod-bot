@@ -1,5 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
+using Hermod.Api.Auth;
+using Hermod.Data;
+using Hermod.Data.Entities;
+using Microsoft.EntityFrameworkCore;
 using TUnit.Core;
 
 namespace Hermod.Api.Tests.Endpoints;
@@ -50,6 +54,81 @@ public class GroupEndpointTests
         var response = await client.GetAsync($"/api/groups/{Guid.NewGuid()}");
 
         await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    private async Task<(Guid userId, Guid groupId)> SeedUserAndGroup()
+    {
+        var userId = Guid.NewGuid();
+        var groupId = Guid.NewGuid();
+
+        await using var db = Api.CreateDbContext();
+        db.Groups.Add(new GroupEntity { Id = GroupId.From(groupId), Name = "Enrollment Group" });
+        db.UserProfiles.Add(new UserProfileEntity { Id = UserId.From(userId), DisplayName = "EnrollUser" });
+        await db.SaveChangesAsync();
+
+        return (userId, groupId);
+    }
+
+    [Test]
+    public async Task JoinGroup_Authenticated_ReturnsCreated()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        var response = await client.PutAsync($"/api/groups/{groupId}/membership", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Created);
+    }
+
+    [Test]
+    public async Task JoinGroup_Twice_ReturnsNoContent()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        await client.PutAsync($"/api/groups/{groupId}/membership", null);
+        var response = await client.PutAsync($"/api/groups/{groupId}/membership", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
+    }
+
+    [Test]
+    public async Task JoinGroup_Anonymous_ReturnsUnauthorized()
+    {
+        var client = Api.CreateAnonymousClient();
+
+        var response = await client.PutAsync($"/api/groups/{Guid.NewGuid()}/membership", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task JoinGroup_NonexistentGroup_ReturnsNotFound()
+    {
+        var userId = Guid.NewGuid();
+        await using var db = Api.CreateDbContext();
+        db.UserProfiles.Add(new UserProfileEntity { Id = UserId.From(userId), DisplayName = "NoGroupUser" });
+        await db.SaveChangesAsync();
+
+        var client = Api.CreateAuthenticatedClient(userId);
+        var response = await client.PutAsync($"/api/groups/{Guid.NewGuid()}/membership", null);
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task JoinGroup_UserAppearsInGroupList()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        await client.PutAsync($"/api/groups/{groupId}/membership", null);
+
+        var listResponse = await client.GetAsync("/api/groups");
+        var groups = await listResponse.Content.ReadFromJsonAsync<GroupResponse[]>();
+
+        await Assert.That(groups).IsNotNull();
+        await Assert.That(groups!.Any(g => g.Id == groupId)).IsTrue();
     }
 
     private record GroupResponse(Guid Id, string Name, bool AllowSharing);

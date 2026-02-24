@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using Hermod.Data;
 using Hermod.Data.Entities;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Wolverine.Http;
 
@@ -51,5 +52,34 @@ public static class GroupEndpoints
             .ToListAsync();
 
         return Results.Ok(groups);
+    }
+
+    [WolverinePut("/api/groups/{groupId:guid}/membership")]
+    public static async Task<IResult> JoinGroup(Guid groupId, ClaimsPrincipal user, [FromServices] HermodContext db)
+    {
+        var userIdClaim = user.FindFirstValue("hermod:user_id");
+        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out var uid))
+            return Results.Unauthorized();
+
+        var gid = GroupId.From(groupId);
+        var group = await db.Groups.FindAsync(gid);
+        if (group is null)
+            return Results.NotFound();
+
+        var userId = UserId.From(uid);
+        var already = await db.UserGroups
+            .AnyAsync(ug => ug.UserId == userId && ug.GroupId == gid);
+        if (already)
+            return Results.NoContent();
+
+        db.UserGroups.Add(new UserGroupEntity
+        {
+            UserId = userId,
+            GroupId = gid,
+            Role = GroupRole.Member,
+        });
+        await db.SaveChangesAsync();
+
+        return Results.Created($"/api/groups/{groupId}/membership", null);
     }
 }

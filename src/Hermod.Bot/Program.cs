@@ -1,5 +1,6 @@
 using Discord;
 using Discord.Addons.Hosting;
+using Discord.Interactions;
 using Discord.WebSocket;
 using Hermod.Bot.Data;
 using Hermod.Bot.Services;
@@ -28,6 +29,13 @@ builder.Services.AddDiscordHost((config, _) =>
         ?? throw new InvalidOperationException("Discord:Token is not configured.");
 });
 
+builder.Services.AddInteractionService((config, _) =>
+{
+    config.DefaultRunMode = RunMode.Async;
+    config.LogLevel = LogSeverity.Info;
+});
+
+builder.Services.AddHostedService<InteractionHandler>();
 builder.Services.AddHostedService<GuildEventService>();
 
 builder.UseWolverine(opts =>
@@ -40,6 +48,9 @@ builder.UseWolverine(opts =>
         .ToPostgresqlQueue("api-inbox");
 
     opts.PublishMessage<UpdateGroupSharing>()
+        .ToPostgresqlQueue("api-inbox");
+
+    opts.PublishMessage<EnrollInGroup>()
         .ToPostgresqlQueue("api-inbox");
 });
 

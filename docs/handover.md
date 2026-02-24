@@ -1,6 +1,6 @@
 # Hermod Bot — Handover
 
-_Last updated: 2026-02-24 (guild join/leave)_
+_Last updated: 2026-02-24 (group enrollment via /enroll)_
 
 ## Current State
 
@@ -17,6 +17,8 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. T
 - **Bot in solution** — `Hermod.Bot` project wired into `Hermod.slnx` and Aspire AppHost, listening on `bot-inbox` with a stub handler that logs received `SharePlayToGroup` messages
 - **Guild join/leave → auto group creation** — when the bot joins a Discord server (or on ready sync), it registers a core `GroupEntity` via `RegisterGuild` → `api-inbox`. Deterministic GroupId (UUID v5 from DiscordGuildId) ensures idempotent upserts. Leaving a guild deactivates the mapping and disables sharing via `UpdateGroupSharing`
 - **BotDbContext** — separate EF Core context (schema: `bot`) with `GuildMappingEntity` linking Discord guilds to core Groups; auto-migrated at startup
+- **Group enrollment (`/enroll`)** — Discord slash command lets guild members join their play-sharing group. Registered users are enrolled immediately via `EnrollInGroup` → `api-inbox`. Unregistered users get a link to the web app that takes them through Discord OAuth and auto-enrolls them on the `/enroll` page. `PUT /api/groups/{groupId}/membership` is the idempotent web endpoint (201 Created / 204 No Content / 401 / 404)
+- **InteractionService** — Discord.Net slash command infrastructure wired up (`InteractionHandler` hosted service, global command registration)
 - **End-to-end upload tested** — full pipeline verified against running Aspire app with repeated uploads
 - **Web frontend** — SvelteKit app (`adapter-static`) with pages for landing, dashboard, plays, groups, and upload; Discord OAuth login working through the gateway
 - **YARP gateway** — reverse proxy in front of the frontend; in dev mode proxies all traffic to Vite (which handles API routing via its proxy config); in publish mode routes `/api`, `/auth`, `/signin-discord` to the API directly and serves static files
@@ -85,16 +87,18 @@ Key design:
 | Handler fixes | LoadAsync with HandlerContinuation tuple, MultipleHandlerBehavior.Separated, DbUpdateConcurrencyException retry, DatePlayed UTC fix |
 | Web frontend | SvelteKit app with adapter-static, Vite proxy for dev, YARP gateway for publish, Discord OAuth login, play/group/upload pages |
 | Guild join/leave | `GuildEventService` (Discord.Net + Discord.Addons.Hosting), `RegisterGuildHandler`/`UpdateGroupSharingHandler` on API, `BotDbContext` with `GuildMappingEntity`, deterministic GroupId via UUID v5, idempotent upserts on both sides |
+| Group enrollment | `/enroll` slash command, `EnrollInGroupHandler` (API), `PUT /api/groups/{groupId}/membership` endpoint, `InteractionHandler` service, web auto-enroll page, `joinGroup()` API function |
 
 ### Test Coverage
 
 - **14 BGStats parser tests** — parsing, multi-play, score expressions
 - **10 handler unit tests** — `PlayExtractedHandler` (create, update, cross-user, player mappings) + `SharePlayHandler` (fan-out filtering, change type)
+- **8 enrollment handler unit tests** — `EnrollInGroupHandler` (enroll, already member, not registered, group not found, member role, no duplicates, multiple users)
 - **11 guild handler unit tests** — `RegisterGuildHandler` (create, upsert, deterministic ID, re-enable sharing) + `UpdateGroupSharingHandler` (enable, disable, no-op)
 - **9 integration tests** — auth endpoints, upload endpoint (auth/unauth/oversized/invalid/persistence), group endpoints
-- **1 group endpoint test** — group creation
+- **6 group endpoint integration tests** — group creation, round-trip, 404, membership (created/idempotent/unauth/not-found/appears-in-list)
 - All tests use **TUnit** with `[ClassDataSource]` property injection; integration tests use Testcontainers (Podman)
-- **46 total tests passing**
+- **54 total tests passing** (unit tests; integration tests depend on Wolverine PostgreSQL transport tables — pre-existing issue)
 
 ---
 
@@ -117,8 +121,9 @@ Hermod.slnx
 │   │   ├── Data/                # BotDbContext, GuildMappingEntity (schema: bot)
 │   │   ├── Handlers/            # Wolverine message handlers (SharePlayToGroupHandler stub)
 │   │   ├── Migrations/          # EF Core migrations for BotDbContext
-│   │   ├── Services/            # GuildEventService (guild join/leave/sync)
-│   │   └── Program.cs           # Host builder, Discord.Net, Wolverine config, listens on bot-inbox
+│   │   ├── Modules/             # Discord.Net interaction modules (EnrollModule)
+│   │   ├── Services/            # GuildEventService, InteractionHandler
+│   │   └── Program.cs           # Host builder, Discord.Net, InteractionService, Wolverine config
 │   ├── Hermod.Data/             # EF Core entities, HermodContext, config, migrations
 │   ├── Hermod.BGStats/          # .bgsplay file parsing (standalone, no DI)
 │   └── Hermod.Web/              # SvelteKit frontend (adapter-static, Vite + TypeScript)
@@ -139,18 +144,24 @@ Hermod.Messages (shared project, no DI deps)
   ├── RegisterGuild          record (DiscordGuildId, GuildName) — Bot → API
   ├── GuildRegistered        record (GroupId, DiscordGuildId) — API → Bot (response)
   ├── UpdateGroupSharing     record (GroupId, AllowSharing) — Bot → API
+  ├── EnrollInGroup          record (DiscordId, GroupId) — Bot → API
+  ├── EnrollmentResult       record (Status) — API → Bot (response)
+  ├── EnrollmentStatus       enum (Enrolled, AlreadyMember, NotRegistered, GroupNotFound)
   └── GroupIdFactory         static (ForDiscordGuild → deterministic UUID v5)
 
 Hermod.Api
-  opts.ListenToPostgresqlQueue("api-inbox")          ← RegisterGuild, UpdateGroupSharing
+  opts.ListenToPostgresqlQueue("api-inbox")          ← RegisterGuild, UpdateGroupSharing, EnrollInGroup
   opts.PublishMessage<SharePlayToGroup>().ToPostgresqlQueue("bot-inbox")
 
 Hermod.Bot
   opts.ListenToPostgresqlQueue("bot-inbox")           ← SharePlayToGroup
   opts.PublishMessage<RegisterGuild>().ToPostgresqlQueue("api-inbox")
   opts.PublishMessage<UpdateGroupSharing>().ToPostgresqlQueue("api-inbox")
+  opts.PublishMessage<EnrollInGroup>().ToPostgresqlQueue("api-inbox")
   → SharePlayToGroupHandler (currently logs, does not post to Discord)
   → GuildEventService (guild join/leave/ready sync)
+  → InteractionHandler (slash command registration + dispatch)
+  → EnrollModule (/enroll slash command)
 ```
 
 ---
@@ -260,6 +271,8 @@ SvelteKit frontend is scaffolded with pages for landing, dashboard, plays, group
 - **`[Required]` from DataAnnotations**: Does NOT make Wolverine add null guards on handler parameters
 - **Vogen + EF Core InMemory**: Child entities with Vogen FK structs must have the FK explicitly set before `db.Add()` — the default struct throws on `GetHashCode()` during graph traversal
 - **Wolverine IFormFile + DbContext**: Having `DbContext` as a direct method parameter on `[WolverinePost]` breaks multipart/form-data (415). Resolve from `HttpContext.RequestServices` instead
+- **Wolverine HTTP empty-body + DbContext**: `[WolverinePut]`/`[WolverineDelete]` with no request body will try to deserialize the empty body as `DbContext` if it's a direct parameter. Use `[FromServices]` attribute on the `DbContext` parameter
+- **Wolverine multiple DbContext types in message handler**: `AutoApplyTransactions` fails at startup if a handler method signature includes two DbContext types. Resolve the read-only DbContext via `IServiceProvider` instead of direct injection
 - **Wolverine HTTP compound handlers**: Only `Before`/`After` methods work (not `Validate`/`Load`); `LoadAsync` is for message handlers only
 - **TUnit `HasCount()`**: Deprecated — use `Count().IsEqualTo()` instead
 - **Podman socket**: Must be started before integration tests: `systemctl --user start podman.socket`

@@ -21,6 +21,7 @@ var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
 var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
     .WithReference(hermodDb)
     .WithEnvironment("Discord__Token", discordToken)
+    .WithEnvironment("WebApp__BaseUrl", "http://localhost:8080")
     .WaitFor(hermodDb);
 
 var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
