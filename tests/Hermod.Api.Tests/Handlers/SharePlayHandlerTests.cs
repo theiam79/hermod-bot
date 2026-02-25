@@ -189,4 +189,32 @@ public class SharePlayHandlerTests
         await Assert.That(alice.Winner).IsTrue();
         await Assert.That(alice.Rank).IsEqualTo(1);
     }
+
+    [Test]
+    public async Task Snapshot_IncludesBgStatsPlayerUuid()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var playId = PlayId.From(Guid.NewGuid());
+        var groupId = GroupId.From(Guid.NewGuid());
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(userId),
+            DisplayName = "Test User",
+        });
+        db.Groups.Add(new GroupEntity { Id = groupId, Name = "Sharing Group", AllowSharing = true });
+        db.UserGroups.Add(new UserGroupEntity { UserId = UserId.From(userId), GroupId = groupId });
+        var play = CreatePlay(playId, UserId.From(userId));
+        db.Plays.Add(play);
+        await db.SaveChangesAsync();
+
+        var message = new PlayPersisted(playId.Value, userId, PlayChangeType.Created);
+        var result = await SharePlayHandler.Handle(message, db);
+
+        var snapshot = result.OfType<SharePlayToGroup>().Single().Snapshot;
+        var aliceEntity = play.Players.Single(p => p.PlayerName == "Alice");
+        var aliceSnapshot = snapshot.Players.Single(p => p.PlayerName == "Alice");
+        await Assert.That(aliceSnapshot.BgStatsPlayerUuid).IsEqualTo(aliceEntity.BgStatsPlayerUuid);
+    }
 }

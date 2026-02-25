@@ -87,11 +87,15 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
         var discordId = Context.User.Id.ToString();
 
         await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
         var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
         var result = await bus.InvokeAsync<ClaimPlayerResult>(
             new ClaimPlayer(discordId, selectedUuid, playId),
             timeout: TimeSpan.FromSeconds(10));
+
+        if (result.UserId.HasValue)
+            await DiscordUserMappingHelper.UpsertAsync(db, Context.User.Id, result.UserId.Value);
 
         var response = result.Status switch
         {
@@ -105,4 +109,5 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
 
         await FollowupAsync(response, ephemeral: true);
     }
+
 }

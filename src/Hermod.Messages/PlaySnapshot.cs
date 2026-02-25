@@ -12,6 +12,7 @@ public record PlaySnapshot(
     List<PlayerSnapshot> Players);
 
 public record PlayerSnapshot(
+    string BgStatsPlayerUuid,
     string PlayerName,
     string? Score,
     double? CalculatedScore,

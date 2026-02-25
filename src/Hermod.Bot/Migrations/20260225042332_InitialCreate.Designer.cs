@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Bot.Migrations
 {
     [DbContext(typeof(BotDbContext))]
-    [Migration("20260224235901_InitialCreate")]
+    [Migration("20260225042332_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -20,11 +20,36 @@ namespace Hermod.Bot.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasDefaultSchema("bot")
                 .HasAnnotation("ProductVersion", "10.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Hermod.Bot.Data.DiscordUserMappingEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DiscordUserId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("HermodUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscordUserId")
+                        .IsUnique();
+
+                    b.HasIndex("HermodUserId")
+                        .IsUnique();
+
+                    b.ToTable("DiscordUserMappings");
+                });
 
             modelBuilder.Entity("Hermod.Bot.Data.GuildMappingEntity", b =>
                 {
@@ -55,7 +80,7 @@ namespace Hermod.Bot.Migrations
                     b.HasIndex("DiscordGuildId")
                         .IsUnique();
 
-                    b.ToTable("GuildMappings", "bot");
+                    b.ToTable("GuildMappings");
                 });
 
             modelBuilder.Entity("Hermod.Bot.Data.PlayPostEntity", b =>
@@ -79,6 +104,9 @@ namespace Hermod.Bot.Migrations
                     b.Property<Guid>("PlayId")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("PlayersJson")
+                        .HasColumnType("jsonb");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
@@ -87,7 +115,7 @@ namespace Hermod.Bot.Migrations
                     b.HasIndex("GroupId", "PlayId")
                         .IsUnique();
 
-                    b.ToTable("PlayPosts", "bot");
+                    b.ToTable("PlayPosts");
                 });
 #pragma warning restore 612, 618
         }

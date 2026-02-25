@@ -42,6 +42,9 @@ public class EnrollModule(
             new EnrollInGroup(discordId, mapping.GroupId),
             timeout: TimeSpan.FromSeconds(10));
 
+        if (result.UserId.HasValue)
+            await DiscordUserMappingHelper.UpsertAsync(db, Context.User.Id, result.UserId.Value);
+
         var message = result.Status switch
         {
             EnrollmentStatus.Enrolled => $"You've been enrolled in **{Context.Guild!.Name}**!",

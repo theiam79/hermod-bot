@@ -6,11 +6,10 @@ public class BotDbContext(DbContextOptions<BotDbContext> options) : DbContext(op
 {
     public DbSet<GuildMappingEntity> GuildMappings => Set<GuildMappingEntity>();
     public DbSet<PlayPostEntity> PlayPosts => Set<PlayPostEntity>();
+    public DbSet<DiscordUserMappingEntity> DiscordUserMappings => Set<DiscordUserMappingEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.HasDefaultSchema("bot");
-
         modelBuilder.Entity<GuildMappingEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -25,6 +24,20 @@ public class BotDbContext(DbContextOptions<BotDbContext> options) : DbContext(op
                 .HasColumnType("numeric(20,0)");
         });
 
+        modelBuilder.Entity<DiscordUserMappingEntity>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.DiscordUserId)
+                .HasColumnType("numeric(20,0)");
+
+            entity.HasIndex(e => e.DiscordUserId)
+                .IsUnique();
+
+            entity.HasIndex(e => e.HermodUserId)
+                .IsUnique();
+        });
+
         modelBuilder.Entity<PlayPostEntity>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -37,6 +50,9 @@ public class BotDbContext(DbContextOptions<BotDbContext> options) : DbContext(op
 
             entity.HasIndex(e => new { e.GroupId, e.PlayId })
                 .IsUnique();
+
+            entity.Property(e => e.PlayersJson)
+                .HasColumnType("jsonb");
         });
     }
 }

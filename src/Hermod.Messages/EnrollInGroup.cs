@@ -2,7 +2,7 @@ namespace Hermod.Messages;
 
 public record EnrollInGroup(string DiscordId, Guid GroupId);
 
-public record EnrollmentResult(EnrollmentStatus Status);
+public record EnrollmentResult(EnrollmentStatus Status, Guid? UserId = null);
 
 public enum EnrollmentStatus
 {

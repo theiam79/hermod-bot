@@ -29,7 +29,7 @@ public static class EnrollInGroupHandler
         var existing = await db.UserGroups
             .AnyAsync(ug => ug.UserId == userId && ug.GroupId == groupId);
         if (existing)
-            return new EnrollmentResult(EnrollmentStatus.AlreadyMember);
+            return new EnrollmentResult(EnrollmentStatus.AlreadyMember, login.UserId);
 
         db.UserGroups.Add(new UserGroupEntity
         {
@@ -39,6 +39,6 @@ public static class EnrollInGroupHandler
         });
         await db.SaveChangesAsync();
 
-        return new EnrollmentResult(EnrollmentStatus.Enrolled);
+        return new EnrollmentResult(EnrollmentStatus.Enrolled, login.UserId);
     }
 }

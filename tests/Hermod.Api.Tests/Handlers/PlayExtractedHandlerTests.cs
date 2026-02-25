@@ -19,7 +19,7 @@ public class PlayExtractedHandlerTests
         return new HermodContext(options);
     }
 
-    private static Play CreateTestPlay(Guid? uuid = null, string gameName = "Catan") => new()
+    private static Play CreateTestPlay(Guid? uuid = null, string gameName = "Catan", Guid? playerUuid = null) => new()
     {
         Uuid = uuid ?? Guid.NewGuid(),
         Game = new Game { Uuid = Guid.NewGuid(), Name = gameName },
@@ -30,7 +30,7 @@ public class PlayExtractedHandlerTests
         [
             new Score
             {
-                Player = new Player { Uuid = Guid.NewGuid(), Name = "Alice" },
+                Player = new Player { Uuid = playerUuid ?? Guid.NewGuid(), Name = "Alice" },
                 ScoreExpression = "10",
                 Winner = true,
                 Rank = 1,
@@ -218,5 +218,100 @@ public class PlayExtractedHandlerTests
 
         var entity = await db.Plays.Include(p => p.Players).FirstAsync();
         await Assert.That(entity.Players[0].MappedUserId).IsEqualTo(mappedUserId);
+    }
+
+    [Test]
+    public async Task AutoLink_MePlayerUuid_CreatesPlayerMapping()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var mePlayerUuid = Guid.NewGuid();
+        var play = CreateTestPlay(playerUuid: mePlayerUuid);
+        var message = new PlayExtracted(play, mePlayerUuid, null, userId);
+
+        await PlayExtractedHandler.Handle(message, db);
+        await db.SaveChangesAsync();
+
+        var mapping = await db.PlayerMappings.SingleAsync();
+        await Assert.That(mapping.BgStatsPlayerUuid).IsEqualTo(mePlayerUuid.ToString());
+        await Assert.That(mapping.MappedUserId).IsEqualTo(UserId.From(userId));
+    }
+
+    [Test]
+    public async Task AutoLink_MePlayerUuid_SetsPlayerMappedUserId()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var mePlayerUuid = Guid.NewGuid();
+        var play = CreateTestPlay(playerUuid: mePlayerUuid);
+        var message = new PlayExtracted(play, mePlayerUuid, null, userId);
+
+        await PlayExtractedHandler.Handle(message, db);
+        await db.SaveChangesAsync();
+
+        var entity = await db.Plays.Include(p => p.Players).FirstAsync();
+        await Assert.That(entity.Players[0].MappedUserId).IsEqualTo(UserId.From(userId));
+    }
+
+    [Test]
+    public async Task AutoLink_NoMePlayerUuid_NoMapping()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var play = CreateTestPlay();
+        var message = new PlayExtracted(play, null, null, userId);
+
+        await PlayExtractedHandler.Handle(message, db);
+        await db.SaveChangesAsync();
+
+        var count = await db.PlayerMappings.CountAsync();
+        await Assert.That(count).IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task AutoLink_AlreadyLinked_NoDuplicate()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var mePlayerUuid = Guid.NewGuid();
+
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = mePlayerUuid.ToString(),
+            MappedUserId = UserId.From(userId),
+        });
+        await db.SaveChangesAsync();
+
+        var play = CreateTestPlay(playerUuid: mePlayerUuid);
+        var message = new PlayExtracted(play, mePlayerUuid, null, userId);
+
+        await PlayExtractedHandler.Handle(message, db);
+        await db.SaveChangesAsync();
+
+        var count = await db.PlayerMappings.CountAsync();
+        await Assert.That(count).IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task AutoLink_DifferentUser_SameUuid_BothLinked()
+    {
+        await using var db = CreateInMemoryDb();
+        var user1 = Guid.NewGuid();
+        var user2 = Guid.NewGuid();
+        var mePlayerUuid = Guid.NewGuid();
+
+        var play1 = CreateTestPlay(playerUuid: mePlayerUuid);
+        var message1 = new PlayExtracted(play1, mePlayerUuid, null, user1);
+        await PlayExtractedHandler.Handle(message1, db);
+        await db.SaveChangesAsync();
+
+        var play2 = CreateTestPlay(playerUuid: mePlayerUuid);
+        var message2 = new PlayExtracted(play2, mePlayerUuid, null, user2);
+        await PlayExtractedHandler.Handle(message2, db);
+        await db.SaveChangesAsync();
+
+        var count = await db.PlayerMappings.CountAsync();
+        await Assert.That(count).IsEqualTo(2);
     }
 }

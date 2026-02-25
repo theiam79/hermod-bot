@@ -34,6 +34,7 @@ public static class SharePlayHandler
             play.GameThumbnailUrl,
             play.BggGameId,
             play.Players.Select(p => new PlayerSnapshot(
+                p.BgStatsPlayerUuid,
                 p.PlayerName,
                 p.Score,
                 p.CalculatedScore,

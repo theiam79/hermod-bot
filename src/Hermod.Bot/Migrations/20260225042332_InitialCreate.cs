@@ -11,12 +11,22 @@ namespace Hermod.Bot.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.EnsureSchema(
-                name: "bot");
+            migrationBuilder.CreateTable(
+                name: "DiscordUserMappings",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    DiscordUserId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    HermodUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DiscordUserMappings", x => x.Id);
+                });
 
             migrationBuilder.CreateTable(
                 name: "GuildMappings",
-                schema: "bot",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -34,7 +44,6 @@ namespace Hermod.Bot.Migrations
 
             migrationBuilder.CreateTable(
                 name: "PlayPosts",
-                schema: "bot",
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uuid", nullable: false),
@@ -42,6 +51,7 @@ namespace Hermod.Bot.Migrations
                     PlayId = table.Column<Guid>(type: "uuid", nullable: false),
                     DiscordChannelId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
                     DiscordMessageId = table.Column<decimal>(type: "numeric(20,0)", nullable: false),
+                    PlayersJson = table.Column<string>(type: "jsonb", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
                 },
@@ -51,15 +61,25 @@ namespace Hermod.Bot.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_DiscordUserMappings_DiscordUserId",
+                table: "DiscordUserMappings",
+                column: "DiscordUserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DiscordUserMappings_HermodUserId",
+                table: "DiscordUserMappings",
+                column: "HermodUserId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_GuildMappings_DiscordGuildId",
-                schema: "bot",
                 table: "GuildMappings",
                 column: "DiscordGuildId",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlayPosts_GroupId_PlayId",
-                schema: "bot",
                 table: "PlayPosts",
                 columns: new[] { "GroupId", "PlayId" },
                 unique: true);
@@ -69,12 +89,13 @@ namespace Hermod.Bot.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "GuildMappings",
-                schema: "bot");
+                name: "DiscordUserMappings");
 
             migrationBuilder.DropTable(
-                name: "PlayPosts",
-                schema: "bot");
+                name: "GuildMappings");
+
+            migrationBuilder.DropTable(
+                name: "PlayPosts");
         }
     }
 }

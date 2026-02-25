@@ -18,23 +18,23 @@ public static class ClaimPlayerHandler
         var login = await authDb.ExternalLogins
             .FirstOrDefaultAsync(e => e.Provider == "Discord" && e.ProviderKey == message.DiscordId);
         if (login is null)
-            return new ClaimPlayerResult(ClaimPlayerStatus.NotRegistered, null);
+            return new ClaimPlayerResult(ClaimPlayerStatus.NotRegistered, null, null);
 
         var userId = UserId.From(login.UserId);
 
         var play = await db.Plays.FindAsync(PlayId.From(message.PlayId));
         if (play?.UploadedById == userId)
-            return new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null);
+            return new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null, login.UserId);
 
         var hasPlayer = await db.PlayPlayers
             .AnyAsync(pp => pp.BgStatsPlayerUuid == message.BgStatsPlayerUuid);
         if (!hasPlayer)
-            return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null);
+            return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, login.UserId);
 
         var alreadyMapped = await db.PlayerMappings
             .AnyAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid && pm.MappedUserId == userId);
         if (alreadyMapped)
-            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null);
+            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null, login.UserId);
 
         db.PlayerMappings.Add(new PlayerMappingEntity
         {
@@ -68,6 +68,6 @@ public static class ClaimPlayerHandler
 
         await db.SaveChangesAsync();
 
-        return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName);
+        return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, login.UserId);
     }
 }

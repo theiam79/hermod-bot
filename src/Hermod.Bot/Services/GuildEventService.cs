@@ -107,8 +107,10 @@ public class GuildEventService(
         var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
         var connectedGuildIds = Client.Guilds.Select(g => g.Id).ToHashSet();
+        logger.LogInformation("Guild sync: {ConnectedCount} connected guild(s), checking mappings...", connectedGuildIds.Count);
         var allMappings = await db.GuildMappings.ToListAsync();
         var mappedGuildIds = allMappings.ToDictionary(m => m.DiscordGuildId);
+        logger.LogInformation("Guild sync: {MappedCount} existing mapping(s)", allMappings.Count);
 
         // Register guilds the bot is in but has no mapping for
         foreach (var guild in Client.Guilds)
@@ -148,6 +150,7 @@ public class GuildEventService(
 
     private async Task RegisterNewGuildAsync(ulong discordGuildId, string guildName, BotDbContext db, IMessageBus bus)
     {
+        logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
         var registered = await bus.InvokeAsync<GuildRegistered>(
             new RegisterGuild(discordGuildId, guildName),
             timeout: TimeSpan.FromSeconds(10));

@@ -254,6 +254,52 @@ public class ClaimPlayerHandlerTests
     }
 
     [Test]
+    public async Task Claim_Claimed_ResultIncludesUserId()
+    {
+        var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
+        await Assert.That(result.UserId).IsEqualTo(userId);
+    }
+
+    [Test]
+    public async Task Claim_AlreadyClaimed_ResultIncludesUserId()
+    {
+        var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
+
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = playerUuid,
+            MappedUserId = UserId.From(userId),
+        });
+        await db.SaveChangesAsync();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.AlreadyClaimed);
+        await Assert.That(result.UserId).IsEqualTo(userId);
+    }
+
+    [Test]
+    public async Task Claim_NotRegistered_UserIdIsNull()
+    {
+        var db = CreateHermodDb();
+        var authDb = CreateAuthDb();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer("unknown-discord-id", Guid.NewGuid().ToString(), Guid.NewGuid()),
+            db, BuildServices(authDb));
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.NotRegistered);
+        await Assert.That(result.UserId).IsNull();
+    }
+
+    [Test]
     public async Task Claim_OnlyBackfillsNull_NoOverwrite()
     {
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();

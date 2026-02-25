@@ -1,4 +1,5 @@
 using System.Net;
+using System.Text.Json;
 using Discord;
 using Discord.Net;
 using Discord.WebSocket;
@@ -61,6 +62,7 @@ public static class SharePlayToGroupHandler
                 if (existingMessage is IUserMessage userMessage)
                 {
                     await userMessage.ModifyAsync(m => m.Embed = embed);
+                    existingPost.PlayersJson = JsonSerializer.Serialize(message.Snapshot.Players);
                     existingPost.UpdatedAt = DateTime.UtcNow;
                     await db.SaveChangesAsync();
                     logger.LogInformation("Updated play post for play {PlayId} in guild {GuildName}",
@@ -82,10 +84,13 @@ public static class SharePlayToGroupHandler
         {
             var sentMessage = await channel.SendMessageAsync(embed: embed);
 
+            var playersJson = JsonSerializer.Serialize(message.Snapshot.Players);
+
             if (existingPost is not null)
             {
                 existingPost.DiscordChannelId = channel.Id;
                 existingPost.DiscordMessageId = sentMessage.Id;
+                existingPost.PlayersJson = playersJson;
                 existingPost.UpdatedAt = DateTime.UtcNow;
             }
             else
@@ -97,6 +102,7 @@ public static class SharePlayToGroupHandler
                     PlayId = message.PlayId,
                     DiscordChannelId = channel.Id,
                     DiscordMessageId = sentMessage.Id,
+                    PlayersJson = playersJson,
                     CreatedAt = DateTime.UtcNow,
                 });
             }

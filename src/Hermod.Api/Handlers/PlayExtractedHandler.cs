@@ -66,6 +66,28 @@ public static class PlayExtractedHandler
             changeType = PlayChangeType.Updated;
         }
 
+        // Auto-link uploader's "me" player
+        if (message.MePlayerUuid.HasValue)
+        {
+            var meUuidStr = message.MePlayerUuid.Value.ToString();
+            var alreadyLinked = await db.PlayerMappings.AnyAsync(
+                pm => pm.BgStatsPlayerUuid == meUuidStr && pm.MappedUserId == uploadedById);
+            if (!alreadyLinked)
+            {
+                db.PlayerMappings.Add(new PlayerMappingEntity
+                {
+                    Id = PlayerMappingId.From(Guid.NewGuid()),
+                    BgStatsPlayerUuid = meUuidStr,
+                    MappedUserId = uploadedById,
+                });
+
+                // Set directly — the mapping isn't queryable until SaveChanges
+                var mePlayer = entity.Players.FirstOrDefault(p => p.BgStatsPlayerUuid == meUuidStr);
+                if (mePlayer is not null)
+                    mePlayer.MappedUserId = uploadedById;
+            }
+        }
+
         // Resolve MappedUserId on players from existing PlayerMappings
         var playerUuids = entity.Players.Select(p => p.BgStatsPlayerUuid).ToList();
         var mappings = await db.PlayerMappings

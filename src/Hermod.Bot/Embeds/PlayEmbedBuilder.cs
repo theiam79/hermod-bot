@@ -140,6 +140,7 @@ public static class PlayEmbedBuilder
             items.Add($"BGG #{bggId}");
 
         items.Add($"{snapshot.Players.Count} Players");
+        items.Add("Right-click \u2192 Apps \u2192 Claim Player");
 
         return string.Join(" | ", items);
     }

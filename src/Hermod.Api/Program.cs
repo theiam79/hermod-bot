@@ -149,6 +149,9 @@ builder.Host.UseWolverine(opts =>
     opts.PublishMessage<Hermod.Messages.SharePlayToGroup>()
         .ToNatsSubject("hermod.bot");
 
+    opts.PublishMessage<Hermod.Messages.DistributePlayFile>()
+        .ToNatsSubject("hermod.bot");
+
     opts.MultipleHandlerBehavior = MultipleHandlerBehavior.Separated;
 
     opts.OnException<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>()

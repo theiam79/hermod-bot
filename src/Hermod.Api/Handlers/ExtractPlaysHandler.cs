@@ -2,6 +2,7 @@ using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
 using Hermod.Data.Entities;
+using Microsoft.Extensions.Logging;
 using Wolverine;
 
 namespace Hermod.Api.Handlers;
@@ -16,9 +17,15 @@ public static class ExtractPlaysHandler
         return (HandlerContinuation.Continue, upload);
     }
 
-    public static OutgoingMessages Handle(PlayFileUploaded message, UploadEntity upload)
+    public static OutgoingMessages Handle(PlayFileUploaded message, UploadEntity upload, ILogger logger)
     {
+        logger.LogInformation("Parsing upload {UploadId}: FileContent length = {Length}",
+            message.UploadId, upload.FileContent?.Length ?? -1);
+
         var result = PlayFileParser.Parse(upload.FileContent);
+
+        logger.LogInformation("Parsed {PlayCount} play(s) from upload {UploadId}",
+            result.Plays.Count, message.UploadId);
 
         return [..result.Plays.ConvertAll(play => new PlayExtracted(
             play, message.MePlayerUuid, message.UploadId,

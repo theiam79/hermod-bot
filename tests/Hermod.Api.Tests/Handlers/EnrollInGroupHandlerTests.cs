@@ -169,6 +169,55 @@ public class EnrollInGroupHandlerTests
     }
 
     [Test]
+    public async Task Handle_Enrolled_ResultIncludesUserId()
+    {
+        var (db, _, services, groupId, userId) = await SetupRegisteredUser();
+
+        var result = await EnrollInGroupHandler.Handle(
+            new EnrollInGroup("123456789", groupId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
+        await Assert.That(result.UserId).IsEqualTo(userId);
+    }
+
+    [Test]
+    public async Task Handle_AlreadyMember_ResultIncludesUserId()
+    {
+        var (db, _, services, groupId, userId) = await SetupRegisteredUser();
+
+        db.UserGroups.Add(new UserGroupEntity
+        {
+            UserId = UserId.From(userId),
+            GroupId = GroupId.From(groupId),
+            Role = GroupRole.Member,
+        });
+        await db.SaveChangesAsync();
+
+        var result = await EnrollInGroupHandler.Handle(
+            new EnrollInGroup("123456789", groupId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.AlreadyMember);
+        await Assert.That(result.UserId).IsEqualTo(userId);
+    }
+
+    [Test]
+    public async Task Handle_NotRegistered_UserIdIsNull()
+    {
+        var db = CreateHermodDb();
+        var authDb = CreateAuthDb();
+
+        var groupId = Guid.NewGuid();
+        db.Groups.Add(new GroupEntity { Id = GroupId.From(groupId), Name = "Test Guild" });
+        await db.SaveChangesAsync();
+
+        var result = await EnrollInGroupHandler.Handle(
+            new EnrollInGroup("unknown-discord-id", groupId), db, BuildServices(authDb));
+
+        await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.NotRegistered);
+        await Assert.That(result.UserId).IsNull();
+    }
+
+    [Test]
     public async Task Handle_MultipleUsersCanEnrollInSameGroup()
     {
         var db = CreateHermodDb();

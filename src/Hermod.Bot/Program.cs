@@ -15,7 +15,7 @@ builder.AddServiceDefaults();
 var natsUrl = builder.Configuration.GetConnectionString("nats")
     ?? throw new InvalidOperationException("ConnectionStrings:nats is not configured.");
 
-builder.AddNpgsqlDbContext<BotDbContext>("hermod-db");
+builder.AddNpgsqlDbContext<BotDbContext>("bot-db");
 
 builder.Services.AddDiscordHost((config, _) =>
 {
@@ -54,6 +54,9 @@ builder.UseWolverine(opts =>
         .ToNatsSubject("hermod.api");
 
     opts.PublishMessage<EnrollInGroup>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<ClaimPlayer>()
         .ToNatsSubject("hermod.api");
 });
 
