@@ -136,6 +136,7 @@ builder.Services.AddAuthorization();
 builder.Host.UseWolverine(opts =>
 {
     opts.PersistMessagesWithPostgresql(hermodConnectionString);
+    opts.Durability.NodeAssignmentHealthCheckTracingEnabled = false;
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.AutoApplyTransactions();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
