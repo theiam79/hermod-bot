@@ -1,10 +1,10 @@
 # Hermod Bot — Handover
 
-_Last updated: 2026-02-24 (group enrollment via /enroll)_
+_Last updated: 2026-02-25 (claim player)_
 
 ## Current State
 
-Hermod is a play-sharing platform for board games recorded in the BGStats app. The rewrite has a working upload-to-fan-out pipeline with Discord OAuth authentication, a separated Bot/API architecture, the Bot wired into the solution and Aspire AppHost, and a SvelteKit web frontend served through a YARP reverse proxy gateway.
+Hermod is a play-sharing platform for board games recorded in the BGStats app. The rewrite has a working end-to-end pipeline from upload through to Discord embed posting, with Discord OAuth authentication, a separated Bot/API architecture communicating via Core NATS, and a SvelteKit web frontend served through a YARP reverse proxy gateway.
 
 ### What Works
 
@@ -12,12 +12,14 @@ Hermod is a play-sharing platform for board games recorded in the BGStats app. T
 - **Authenticated uploads** — `POST /api/plays/upload` accepts `.bgsplay` files from authenticated users (Discord OAuth, cookie sessions)
 - **Upsert pipeline** — re-uploading the same play (by BgStatsPlayUuid + user) updates the existing record instead of creating duplicates
 - **Per-group fan-out** — after a play is persisted, `SharePlayToGroup` events are emitted for every group the uploader belongs to (where sharing is enabled)
-- **Cross-process messaging** — `SharePlayToGroup` is routed to the `bot-inbox` PostgreSQL queue; Bot is listening
+- **Cross-process messaging** — Bot ↔ API communicate via Wolverine Core NATS transport (at-most-once, in-memory). API listens on `hermod.api`, Bot listens on `hermod.bot`
 - **Auth infrastructure** — Discord OAuth with JIT user provisioning, dual-database design (auth-db + hermod-db), cookie sessions
-- **Bot in solution** — `Hermod.Bot` project wired into `Hermod.slnx` and Aspire AppHost, listening on `bot-inbox` with a stub handler that logs received `SharePlayToGroup` messages
+- **Play embeds** — `SharePlayToGroupHandler` receives `SharePlayToGroup` messages, builds Discord embeds via `PlayEmbedBuilder`, posts to the configured channel. New plays → new embed message, updated plays → edit existing. `PlayPostEntity` tracks posted messages (unique per PlayId + GroupId) for idempotent edit-on-update
+- **`/sharing` admin commands** — `SharingModule` provides `/sharing channel` (set the embed target channel for a guild) and `/sharing toggle` (enable/disable play sharing for a guild)
 - **Guild join/leave → auto group creation** — when the bot joins a Discord server (or on ready sync), it registers a core `GroupEntity` via `RegisterGuild` → `api-inbox`. Deterministic GroupId (UUID v5 from DiscordGuildId) ensures idempotent upserts. Leaving a guild deactivates the mapping and disables sharing via `UpdateGroupSharing`
 - **BotDbContext** — separate EF Core context (schema: `bot`) with `GuildMappingEntity` linking Discord guilds to core Groups; auto-migrated at startup
 - **Group enrollment (`/enroll`)** — Discord slash command lets guild members join their play-sharing group. Registered users are enrolled immediately via `EnrollInGroup` → `api-inbox`. Unregistered users get a link to the web app that takes them through Discord OAuth and auto-enrolls them on the `/enroll` page. `PUT /api/groups/{groupId}/membership` is the idempotent web endpoint (201 Created / 204 No Content / 401 / 404)
+- **Player claiming** — "Claim Player" message command on play embeds lets users self-identify as a BGStats player. Select menu filters out already-linked players (`MappedUserId is null`). API handler creates `PlayerMappingEntity`, sets `MappedUserId` on the target play, and backfills all other plays with the same UUID. Uploader is blocked from claiming (API guard returns `IsUploader` since they're auto-linked via `meRefId`)
 - **InteractionService** — Discord.Net slash command infrastructure wired up (`InteractionHandler` hosted service, global command registration)
 - **End-to-end upload tested** — full pipeline verified against running Aspire app with repeated uploads
 - **Web frontend** — SvelteKit app (`adapter-static`) with pages for landing, dashboard, plays, groups, and upload; Discord OAuth login working through the gateway
@@ -36,7 +38,10 @@ POST /api/plays/upload (authenticated)
           → PlayExtractedHandler (UPSERT by BgStatsPlayUuid + UploadedById)
             → PlayPersisted(PlayId, UploadedById, Created|Updated)
               → SharePlayHandler (fan-out per group with AllowSharing)
-                → SharePlayToGroup(PlayId, GroupId, ChangeType, Snapshot) → bot-inbox queue
+                → SharePlayToGroup(PlayId, GroupId, ChangeType, Snapshot) → hermod.bot NATS subject
+                  → SharePlayToGroupHandler (Bot)
+                    → PlayEmbedBuilder → Discord embed posted/edited
+                    → PlayPostEntity upserted (tracks message ID for edit-on-update)
       → DistributeFileHandler (LoadAsync + HandlerContinuation tuple, parallel)
         → DistributePlayFile(UploadId, PlayerUuid) — no consumer yet
 ```
@@ -80,25 +85,29 @@ Key design:
 |-------|-----------|
 | Phase 1: Foundation | Solution structure, BGStats parser, Data layer, API skeleton, 14 TUnit tests |
 | Phase 2–3: Upload pipeline | Wolverine event cascade, upload endpoint, play extraction, embed posting (colocated) |
-| Discord Separation | Bot split into separate process (`Hermod.Bot`), Wolverine PostgreSQL transport, slash commands, guild sync |
+| Discord Separation | Bot split into separate process (`Hermod.Bot`), Wolverine transport, slash commands, guild sync |
+| NATS Transport Migration | Migrated Bot ↔ API from Wolverine PostgreSQL queues to Core NATS subjects (`hermod.api`, `hermod.bot`) |
 | Phase 4: Auth (partial) | AuthDbContext, Discord OAuth, cookie sessions, test auth handler, authenticated upload endpoint |
 | Play Pipeline Rework | Upsert, GroupId removal, per-group fan-out via `SharePlayToGroup`, `Hermod.Messages` shared project |
-| Bot + Aspire wiring | `Hermod.Bot` added to solution, AppHost, Aspire orchestration; stub handler for `SharePlayToGroup`; `PlaySnapshot` in messages |
+| Bot + Aspire wiring | `Hermod.Bot` added to solution, AppHost, Aspire orchestration; `PlaySnapshot` in messages |
+| Play embeds | `SharePlayToGroupHandler` (real implementation), `PlayEmbedBuilder`, `PlayPostEntity`, `/sharing` admin commands (channel + toggle), edit-on-update for re-uploaded plays |
 | Handler fixes | LoadAsync with HandlerContinuation tuple, MultipleHandlerBehavior.Separated, DbUpdateConcurrencyException retry, DatePlayed UTC fix |
 | Web frontend | SvelteKit app with adapter-static, Vite proxy for dev, YARP gateway for publish, Discord OAuth login, play/group/upload pages |
 | Guild join/leave | `GuildEventService` (Discord.Net + Discord.Addons.Hosting), `RegisterGuildHandler`/`UpdateGroupSharingHandler` on API, `BotDbContext` with `GuildMappingEntity`, deterministic GroupId via UUID v5, idempotent upserts on both sides |
 | Group enrollment | `/enroll` slash command, `EnrollInGroupHandler` (API), `PUT /api/groups/{groupId}/membership` endpoint, `InteractionHandler` service, web auto-enroll page, `joinGroup()` API function |
+| Player claiming | "Claim Player" message command, `ClaimPlayerHandler` (API), `ClaimPlayerModule` (Bot), select menu with `MappedUserId` filter, uploader guard, backfill across plays |
 
 ### Test Coverage
 
 - **14 BGStats parser tests** — parsing, multi-play, score expressions
 - **10 handler unit tests** — `PlayExtractedHandler` (create, update, cross-user, player mappings) + `SharePlayHandler` (fan-out filtering, change type)
+- **9 claim player handler unit tests** — `ClaimPlayerHandler` (claim, mapping creation, MappedUserId set, backfill, already claimed, uploader blocked, not registered, unknown UUID, no overwrite)
 - **8 enrollment handler unit tests** — `EnrollInGroupHandler` (enroll, already member, not registered, group not found, member role, no duplicates, multiple users)
 - **11 guild handler unit tests** — `RegisterGuildHandler` (create, upsert, deterministic ID, re-enable sharing) + `UpdateGroupSharingHandler` (enable, disable, no-op)
 - **9 integration tests** — auth endpoints, upload endpoint (auth/unauth/oversized/invalid/persistence), group endpoints
 - **6 group endpoint integration tests** — group creation, round-trip, 404, membership (created/idempotent/unauth/not-found/appears-in-list)
 - All tests use **TUnit** with `[ClassDataSource]` property injection; integration tests use Testcontainers (Podman)
-- **54 total tests passing** (unit tests; integration tests depend on Wolverine PostgreSQL transport tables — pre-existing issue)
+- **63 total tests passing** (unit tests; integration tests require Podman)
 
 ---
 
@@ -118,10 +127,11 @@ Hermod.slnx
 │   │   ├── Handlers/            # Wolverine message handlers
 │   │   └── Messages/            # Api-internal message records
 │   ├── Hermod.Bot/              # Discord bot — separate Worker process
-│   │   ├── Data/                # BotDbContext, GuildMappingEntity (schema: bot)
-│   │   ├── Handlers/            # Wolverine message handlers (SharePlayToGroupHandler stub)
+│   │   ├── Data/                # BotDbContext, GuildMappingEntity, PlayPostEntity (schema: bot)
+│   │   ├── Embeds/              # PlayEmbedBuilder (Discord embed construction)
+│   │   ├── Handlers/            # Wolverine message handlers (SharePlayToGroupHandler)
 │   │   ├── Migrations/          # EF Core migrations for BotDbContext
-│   │   ├── Modules/             # Discord.Net interaction modules (EnrollModule)
+│   │   ├── Modules/             # Discord.Net interaction modules (EnrollModule, SharingModule, ClaimPlayerModule)
 │   │   ├── Services/            # GuildEventService, InteractionHandler
 │   │   └── Program.cs           # Host builder, Discord.Net, InteractionService, Wolverine config
 │   ├── Hermod.Data/             # EF Core entities, HermodContext, config, migrations
@@ -147,21 +157,27 @@ Hermod.Messages (shared project, no DI deps)
   ├── EnrollInGroup          record (DiscordId, GroupId) — Bot → API
   ├── EnrollmentResult       record (Status) — API → Bot (response)
   ├── EnrollmentStatus       enum (Enrolled, AlreadyMember, NotRegistered, GroupNotFound)
+  ├── ClaimPlayer            record (DiscordId, BgStatsPlayerUuid, PlayId) — Bot → API
+  ├── ClaimPlayerResult      record (Status, PlayerName?) — API → Bot (response)
+  ├── ClaimPlayerStatus      enum (Claimed, AlreadyClaimed, IsUploader, NotRegistered, PlayerNotFound)
   └── GroupIdFactory         static (ForDiscordGuild → deterministic UUID v5)
 
 Hermod.Api
-  opts.ListenToPostgresqlQueue("api-inbox")          ← RegisterGuild, UpdateGroupSharing, EnrollInGroup
-  opts.PublishMessage<SharePlayToGroup>().ToPostgresqlQueue("bot-inbox")
+  opts.ListenToNatsSubject("hermod.api")              ← RegisterGuild, UpdateGroupSharing, EnrollInGroup, ClaimPlayer
+  opts.PublishMessage<SharePlayToGroup>().ToNatsSubject("hermod.bot")
 
 Hermod.Bot
-  opts.ListenToPostgresqlQueue("bot-inbox")           ← SharePlayToGroup
-  opts.PublishMessage<RegisterGuild>().ToPostgresqlQueue("api-inbox")
-  opts.PublishMessage<UpdateGroupSharing>().ToPostgresqlQueue("api-inbox")
-  opts.PublishMessage<EnrollInGroup>().ToPostgresqlQueue("api-inbox")
-  → SharePlayToGroupHandler (currently logs, does not post to Discord)
+  opts.ListenToNatsSubject("hermod.bot")               ← SharePlayToGroup
+  opts.PublishMessage<RegisterGuild>().ToNatsSubject("hermod.api")
+  opts.PublishMessage<UpdateGroupSharing>().ToNatsSubject("hermod.api")
+  opts.PublishMessage<EnrollInGroup>().ToNatsSubject("hermod.api")
+  opts.PublishMessage<ClaimPlayer>().ToNatsSubject("hermod.api")
+  → SharePlayToGroupHandler (builds embed, posts/edits in Discord channel, tracks in PlayPostEntity)
   → GuildEventService (guild join/leave/ready sync)
   → InteractionHandler (slash command registration + dispatch)
   → EnrollModule (/enroll slash command)
+  → SharingModule (/sharing channel, /sharing toggle)
+  → ClaimPlayerModule ("Claim Player" message command + select menu handler)
 ```
 
 ---
@@ -199,27 +215,13 @@ dotnet test --solution Hermod.slnx
 
 ## Next Steps
 
-### Immediate: Bot-side SharePlayToGroup handler (real implementation)
+### Immediate: Player linking polish
 
-The stub handler logs received messages. Groups are now auto-created when the bot joins a server (`GuildMappingEntity` links DiscordGuildId → GroupId). The real handler should:
+Auto-link via `meRefId` and self-claim via message command are implemented. Remaining:
 
-1. Receive `SharePlayToGroup(PlayId, GroupId, ChangeType, PlaySnapshot)` — snapshot is already populated
-2. Look up the guild's Discord channel from `BotDbContext.GuildMappings` by GroupId (may need a channel ID field or a default channel convention)
-3. Build a Discord embed from `PlaySnapshot` (game name, players, scores, date, thumbnail)
-4. Post the embed to the Discord channel (new play → new message, updated play → edit existing)
-5. Record the posted message in `PlayPosts` (unique per PlayId + GroupId)
-
-The `PlaySnapshot` is already carried in the message, so no round-trip to the API is needed.
-
-### Pending: Player linking
-
-Map BGStats player UUIDs to platform users so embeds can @-mention real people.
-
-- **Auto-link via `meRefId`**: BGStats marks the device owner's player; auto-map on upload (partially implemented — `MePlayerUuid` flows through the pipeline but isn't used for auto-mapping yet)
-- **Self-claim**: Message command on embeds for users to claim themselves as a player
-- **Manual tagging**: Slash command or web UI for mapping players
-
-`PlayerMappingEntity` exists in the schema. `PlayExtractedHandler` already resolves mappings during play creation/update.
+- **Manual tagging**: Slash command or web UI for admins to map players who haven't self-claimed
+- **@-mentions in embeds**: Update `PlayEmbedBuilder` to mention linked users in the player list
+- **Claim notification**: Optionally notify the uploader when someone claims a player in their play
 
 ### Pending: DistributePlayFile handler
 
@@ -247,7 +249,7 @@ SvelteKit frontend is scaffolded with pages for landing, dashboard, plays, group
 | Plays not tied to groups | A play belongs to a user; sharing is a separate concern handled by fan-out |
 | Upsert by (UUID, user) | Same play re-uploaded by the same user updates in place; different users uploading the same play create separate records |
 | Dual databases | Auth (identity-only) separated from app data; no cross-database FK, linked by UserId |
-| Wolverine PostgreSQL transport | Bot ↔ API messaging without external broker; `api-inbox` and `bot-inbox` queues |
+| Wolverine Core NATS transport | Bot ↔ API messaging via Core NATS (at-most-once, in-memory); `hermod.api` and `hermod.bot` subjects. No JetStream — simplicity over durability for this use case |
 | Cascade return values | Handlers return the next message type (or `OutgoingMessages` for fan-out); no manual `IMessageBus.PublishAsync` |
 | LoadAsync + HandlerContinuation | Compound handlers use `(HandlerContinuation, T?)` tuple return to skip Handle on null; plain `T?` passes null through |
 | MultipleHandlerBehavior.Separated | Multiple handlers for the same message type get independent local queues |
@@ -259,7 +261,7 @@ SvelteKit frontend is scaffolded with pages for landing, dashboard, plays, group
 | SvelteKit with adapter-static | SPA fallback (`200.html`) — all routing handled client-side; YARP serves static files in production |
 | UseForwardedHeaders | Required behind YARP so OAuth middleware constructs correct redirect URIs from X-Forwarded-Host/Proto |
 | Deterministic GroupId (UUID v5) | GroupId derived from DiscordGuildId via UUID v5 (SHA-1 + namespace GUID). Same guild always maps to same group; no Discord-specific fields in core data model. Each future provider gets its own namespace GUID — no collision risk (v5 and v4 occupy disjoint UUID space) |
-| Guild registration via InvokeAsync | Bot uses `InvokeAsync<GuildRegistered>` (30s timeout) for synchronous request-response through PostgreSQL queues. API upserts GroupEntity and returns GroupId. Bot upserts GuildMappingEntity |
+| Guild registration via InvokeAsync | Bot uses `InvokeAsync<GuildRegistered>` (10s timeout) for synchronous request-response via NATS. API upserts GroupEntity and returns GroupId. Bot upserts GuildMappingEntity |
 | BotDbContext (schema: bot) | Separate EF context for Discord-specific data; lives in `Hermod.Bot/Data/`. Auto-migrated at startup. `GuildMappingEntity` has unique index on `DiscordGuildId` (stored as `numeric(20,0)`) |
 
 ---
@@ -276,7 +278,7 @@ SvelteKit frontend is scaffolded with pages for landing, dashboard, plays, group
 - **Wolverine HTTP compound handlers**: Only `Before`/`After` methods work (not `Validate`/`Load`); `LoadAsync` is for message handlers only
 - **TUnit `HasCount()`**: Deprecated — use `Count().IsEqualTo()` instead
 - **Podman socket**: Must be started before integration tests: `systemctl --user start podman.socket`
-- **Wolverine `InvokeAsync<T>` over PostgreSQL transport**: Default timeout is 5 seconds, which is too short for queue round-trips (polling latency + durability agent sweep). Use explicit `timeout: TimeSpan.FromSeconds(30)`. Unhandled `TimeoutException` in a `BackgroundService` crashes the host — always wrap in try-catch
+- **Wolverine `InvokeAsync<T>` over NATS**: Use explicit `timeout: TimeSpan.FromSeconds(10)` for cross-process request-response. Unhandled `TimeoutException` in a `BackgroundService` crashes the host — always wrap in try-catch
 - **Architecture doc** (`docs/architecture.md`): Significantly stale — references SQLite, Hermod.Core, Hermod.Contracts, and a colocated Bot design that no longer exist. Should be rewritten to match current reality.
 - **Debug generated code**: Run `dotnet run -- codegen write` to dump Wolverine's generated handler code for debugging compound handler wiring
 - **Aspire DCP + Podman containers**: DCP binds all proxy ports to `127.0.0.1`, so containers (YARP, pgAdmin) cannot reach host-based projects via `host.containers.internal`. This is why YARP only routes API traffic in publish mode — in dev, Vite's proxy (running on the host) handles it instead.
