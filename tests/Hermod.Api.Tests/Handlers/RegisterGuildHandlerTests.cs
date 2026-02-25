@@ -31,7 +31,7 @@ public class RegisterGuildHandlerTests
     }
 
     [Test]
-    public async Task Handle_SetsAllowSharingTrue()
+    public async Task Handle_SetsAllowSharingFalse()
     {
         await using var db = CreateInMemoryDb();
 
@@ -39,7 +39,7 @@ public class RegisterGuildHandlerTests
         await RegisterGuildHandler.Handle(message, db);
 
         var group = await db.Groups.SingleAsync();
-        await Assert.That(group.AllowSharing).IsTrue();
+        await Assert.That(group.AllowSharing).IsFalse();
     }
 
     [Test]
@@ -90,7 +90,7 @@ public class RegisterGuildHandlerTests
     }
 
     [Test]
-    public async Task Handle_ExistingGroupWithSharingDisabled_ReEnablesSharing()
+    public async Task Handle_ExistingGroupWithSharingDisabled_PreservesAllowSharing()
     {
         await using var db = CreateInMemoryDb();
         var groupId = GroupId.From(GroupIdFactory.ForDiscordGuild(123456789UL));
@@ -100,7 +100,7 @@ public class RegisterGuildHandlerTests
         await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
 
         var group = await db.Groups.SingleAsync();
-        await Assert.That(group.AllowSharing).IsTrue();
+        await Assert.That(group.AllowSharing).IsFalse();
     }
 
     [Test]

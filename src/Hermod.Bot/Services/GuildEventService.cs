@@ -50,7 +50,12 @@ public class GuildEventService(
                     existing.IsActive = true;
                     existing.DeactivatedAt = null;
                     await db.SaveChangesAsync();
-                    await bus.PublishAsync(new UpdateGroupSharing(existing.GroupId, true));
+
+                    if (existing.PostChannelId is not null)
+                    {
+                        await bus.PublishAsync(new UpdateGroupSharing(existing.GroupId, true));
+                    }
+
                     logger.LogInformation("Reactivated guild mapping for {GuildName} ({GuildId})", guild.Name, guild.Id);
                 }
 
@@ -114,7 +119,12 @@ public class GuildEventService(
                 {
                     mapping.IsActive = true;
                     mapping.DeactivatedAt = null;
-                    await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, true));
+
+                    if (mapping.PostChannelId is not null)
+                    {
+                        await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, true));
+                    }
+
                     logger.LogInformation("Reactivated guild mapping during sync for {GuildName} ({GuildId})", guild.Name, guild.Id);
                 }
             }

@@ -44,12 +44,47 @@ namespace Hermod.Bot.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("boolean");
 
+                    b.Property<decimal?>("PostChannelId")
+                        .HasColumnType("numeric(20,0)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DiscordGuildId")
                         .IsUnique();
 
                     b.ToTable("GuildMappings", "bot");
+                });
+
+            modelBuilder.Entity("Hermod.Bot.Data.PlayPostEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DiscordChannelId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<decimal>("DiscordMessageId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("GroupId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("PlayId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("GroupId", "PlayId")
+                        .IsUnique();
+
+                    b.ToTable("PlayPosts", "bot");
                 });
 #pragma warning restore 612, 618
         }

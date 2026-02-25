@@ -14,7 +14,6 @@ public static class RegisterGuildHandler
         if (group is not null)
         {
             group.Name = message.GuildName;
-            group.AllowSharing = true;
         }
         else
         {
@@ -22,7 +21,7 @@ public static class RegisterGuildHandler
             {
                 Id = groupId,
                 Name = message.GuildName,
-                AllowSharing = true,
+                AllowSharing = false,
             };
             db.Groups.Add(group);
         }
