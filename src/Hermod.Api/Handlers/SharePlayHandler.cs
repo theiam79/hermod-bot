@@ -22,7 +22,10 @@ public static class SharePlayHandler
 
         var play = await db.Plays
             .Include(p => p.Players)
-            .FirstAsync(p => p.Id == PlayId.From(message.PlayId));
+            .FirstOrDefaultAsync(p => p.Id == PlayId.From(message.PlayId));
+
+        if (play is null)
+            return [];
 
         var snapshot = new PlaySnapshot(
             play.GameName,

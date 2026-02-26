@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using Hermod.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TUnit.Core;
 
 namespace Hermod.Api.Tests.Endpoints;
@@ -113,7 +114,8 @@ public class UploadEndpointTests
         var body = await response.Content.ReadFromJsonAsync<UploadResponse>();
         await Assert.That(body).IsNotNull();
 
-        await using var db = Api.CreateDbContext();
+        await using var scope = Api.CreateDbScope();
+        var db = scope.ServiceProvider.GetRequiredService<HermodContext>();
         var upload = await db.Uploads.FirstOrDefaultAsync(u => u.Id == UploadId.From(body!.UploadId));
 
         await Assert.That(upload).IsNotNull();

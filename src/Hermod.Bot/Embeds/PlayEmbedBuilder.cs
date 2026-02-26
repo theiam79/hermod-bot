@@ -83,7 +83,7 @@ public static class PlayEmbedBuilder
                 : string.IsNullOrEmpty(team.Key) ? "Unassigned" : team.Key;
 
             var hasWinner = team.Any(p => p.Winner);
-            var title = $"\r\n{teamName}{(hasWinner ? " :trophy:" : "")}";
+            var title = $"\r\n{teamName}{(hasWinner ? " 🏆" : "")}";
 
             var sb = new StringBuilder();
             foreach (var player in team)
@@ -112,7 +112,7 @@ public static class PlayEmbedBuilder
         {
             sb.Append(player.PlayerName);
             AppendScore(sb, player);
-            if (player.Winner) sb.Append(" :trophy:");
+            if (player.Winner) sb.Append(" 🏆");
             sb.AppendLine();
             if (!string.IsNullOrEmpty(player.Role))
                 sb.AppendLine($"```Role: {player.Role}```");

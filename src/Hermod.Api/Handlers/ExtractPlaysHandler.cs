@@ -20,7 +20,7 @@ public static class ExtractPlaysHandler
     public static OutgoingMessages Handle(PlayFileUploaded message, UploadEntity upload, ILogger logger)
     {
         logger.LogInformation("Parsing upload {UploadId}: FileContent length = {Length}",
-            message.UploadId, upload.FileContent?.Length ?? -1);
+            message.UploadId, upload.FileContent.Length);
 
         var result = PlayFileParser.Parse(upload.FileContent);
 

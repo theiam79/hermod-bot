@@ -37,7 +37,7 @@ public static class UploadPlays
             content = await reader.ReadToEndAsync();
             parsed = PlayFileParser.Parse(content);
         }
-        catch
+        catch (Exception) when (file.Length <= MaxFileSizeBytes)
         {
             return (Results.BadRequest("Invalid .bgsplay file content."), []);
         }

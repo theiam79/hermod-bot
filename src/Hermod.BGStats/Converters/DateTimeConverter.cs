@@ -9,7 +9,9 @@ public sealed class DateTimeConverter : JsonConverter<DateTime>
 
     public override DateTime Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return DateTime.ParseExact(reader.GetString()!, Format, null);
+        var value = reader.GetString()
+            ?? throw new JsonException("Expected a non-null string for DateTime.");
+        return DateTime.ParseExact(value, Format, null);
     }
 
     public override void Write(Utf8JsonWriter writer, DateTime value, JsonSerializerOptions options)

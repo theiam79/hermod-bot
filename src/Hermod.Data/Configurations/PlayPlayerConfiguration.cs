@@ -15,7 +15,7 @@ public class PlayPlayerConfiguration : IEntityTypeConfiguration<PlayPlayerEntity
         builder.Property(pp => pp.PlayId)
             .HasConversion(id => id.Value, v => PlayId.From(v));
         builder.Property(pp => pp.MappedUserId)
-            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UserId.From(v.Value) : (UserId?)null);
+            .HasConversion(id => id.HasValue ? (Guid?)id.Value.Value : null, v => v.HasValue ? UserId.From(v.Value) : (UserId?)null);
 
         builder.Property(pp => pp.BgStatsPlayerUuid).IsRequired().HasMaxLength(100);
         builder.Property(pp => pp.PlayerName).IsRequired().HasMaxLength(200);

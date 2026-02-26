@@ -12,7 +12,7 @@ public sealed class IntToBoolConverter : JsonConverter<bool>
             JsonTokenType.True => true,
             JsonTokenType.False => false,
             JsonTokenType.Number => reader.TryGetInt32(out var value) && value == 1,
-            _ => false,
+            _ => throw new JsonException($"Cannot convert {reader.TokenType} to bool."),
         };
     }
 

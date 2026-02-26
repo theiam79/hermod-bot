@@ -68,7 +68,8 @@ public static class PlayFileParser
     private static Play MapPlay(PlayFile file, PlayFile.PlaySection playSection)
     {
         var location = file.Locations.FirstOrDefault(l => l.Id == playSection.LocationRefId);
-        var game = file.Games.First(g => g.Id == playSection.GameRefId);
+        var game = file.Games.FirstOrDefault(g => g.Id == playSection.GameRefId)
+            ?? throw new InvalidOperationException($"Play references unknown game RefId {playSection.GameRefId}.");
 
         var expansionGameRefIds = playSection.ExpansionPlays.Select(ep => ep.GameRefId).ToHashSet();
         var expansions = file.Games
@@ -83,7 +84,7 @@ public static class PlayFileParser
             {
                 scoresheet = JsonSerializer.Deserialize<Scoresheet>(playSection.Scoresheet, ScoresheetOptions);
             }
-            catch
+            catch (JsonException)
             {
                 // Scoresheet parsing is best-effort; don't fail the whole play
             }
@@ -153,7 +154,8 @@ public static class PlayFileParser
 
     private static Score MapPlayerScore(PlayFile file, PlayFile.PlaySection playSection, PlayFile.PlayerScoreSection ps)
     {
-        var player = file.Players.First(p => p.Id == ps.PlayerRefId);
+        var player = file.Players.FirstOrDefault(p => p.Id == ps.PlayerRefId)
+            ?? throw new InvalidOperationException($"PlayerScore references unknown player RefId {ps.PlayerRefId}.");
 
         return new Score
         {

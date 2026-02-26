@@ -36,7 +36,7 @@ public sealed record Score
             result = Convert.ToDouble(evaluated);
             return true;
         }
-        catch
+        catch (Exception) when (expression is not null)
         {
             return false;
         }

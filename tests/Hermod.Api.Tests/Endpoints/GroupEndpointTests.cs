@@ -1,9 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
-using Hermod.Api.Auth;
 using Hermod.Data;
 using Hermod.Data.Entities;
-using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using TUnit.Core;
 
 namespace Hermod.Api.Tests.Endpoints;
@@ -61,7 +60,8 @@ public class GroupEndpointTests
         var userId = Guid.NewGuid();
         var groupId = Guid.NewGuid();
 
-        await using var db = Api.CreateDbContext();
+        await using var scope = Api.CreateDbScope();
+        var db = scope.ServiceProvider.GetRequiredService<HermodContext>();
         db.Groups.Add(new GroupEntity { Id = GroupId.From(groupId), Name = "Enrollment Group" });
         db.UserProfiles.Add(new UserProfileEntity { Id = UserId.From(userId), DisplayName = "EnrollUser" });
         await db.SaveChangesAsync();
@@ -106,7 +106,8 @@ public class GroupEndpointTests
     public async Task JoinGroup_NonexistentGroup_ReturnsNotFound()
     {
         var userId = Guid.NewGuid();
-        await using var db = Api.CreateDbContext();
+        await using var scope = Api.CreateDbScope();
+        var db = scope.ServiceProvider.GetRequiredService<HermodContext>();
         db.UserProfiles.Add(new UserProfileEntity { Id = UserId.From(userId), DisplayName = "NoGroupUser" });
         await db.SaveChangesAsync();
 

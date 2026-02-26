@@ -26,7 +26,7 @@ public class PlayConfiguration : IEntityTypeConfiguration<PlayEntity>
         builder.HasIndex(p => p.DatePlayed);
 
         builder.Property(p => p.UploadId)
-            .HasConversion(id => (Guid?)id!.Value.Value, v => v.HasValue ? UploadId.From(v.Value) : (UploadId?)null);
+            .HasConversion(id => id.HasValue ? (Guid?)id.Value.Value : null, v => v.HasValue ? UploadId.From(v.Value) : (UploadId?)null);
 
         builder.HasOne(p => p.Upload)
             .WithMany(u => u.Plays)
