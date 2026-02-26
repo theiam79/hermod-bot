@@ -1,24 +1,26 @@
-using Discord;
 using Hermod.Messages;
+using NetCord;
+using NetCord.Rest;
 using System.Text;
 
 namespace Hermod.Bot.Embeds;
 
 public static class PlayEmbedBuilder
 {
-    private static readonly Color PlayColor = Color.Green;
+    private static readonly Color PlayColor = new(0x57F287); // Discord green
 
-    public static Embed Build(PlaySnapshot snapshot)
+    public static EmbedProperties Build(PlaySnapshot snapshot)
     {
-        return new EmbedBuilder()
-            .WithTitle(snapshot.GameName)
-            .WithDescription(BuildDescription(snapshot))
-            .WithThumbnailUrl(snapshot.GameThumbnailUrl)
-            .WithTimestamp(snapshot.DatePlayed)
-            .WithColor(PlayColor)
-            .WithFields(BuildPlayerFields(snapshot))
-            .WithFooter(BuildFooter(snapshot))
-            .Build();
+        return new EmbedProperties
+        {
+            Title = snapshot.GameName,
+            Description = BuildDescription(snapshot),
+            Thumbnail = snapshot.GameThumbnailUrl is { } url ? new EmbedThumbnailProperties(url) : null,
+            Timestamp = snapshot.DatePlayed,
+            Color = PlayColor,
+            Fields = BuildPlayerFields(snapshot).ToArray(),
+            Footer = new EmbedFooterProperties { Text = BuildFooter(snapshot) },
+        };
     }
 
     private static string BuildDescription(PlaySnapshot snapshot)
@@ -64,13 +66,13 @@ public static class PlayEmbedBuilder
         };
     }
 
-    private static IEnumerable<EmbedFieldBuilder> BuildPlayerFields(PlaySnapshot snapshot)
+    private static IEnumerable<EmbedFieldProperties> BuildPlayerFields(PlaySnapshot snapshot)
     {
         var hasTeams = snapshot.Players.Any(p => !string.IsNullOrEmpty(p.Team));
         return hasTeams ? BuildTeamFields(snapshot.Players) : BuildIndividualFields(snapshot.Players);
     }
 
-    private static IEnumerable<EmbedFieldBuilder> BuildTeamFields(List<PlayerSnapshot> players)
+    private static IEnumerable<EmbedFieldProperties> BuildTeamFields(List<PlayerSnapshot> players)
     {
         var teams = players.GroupBy(p => p.Team ?? "").OrderBy(g => g.Key);
 
@@ -93,14 +95,16 @@ public static class PlayEmbedBuilder
                     sb.AppendLine($"```Role: {player.Role}```");
             }
 
-            yield return new EmbedFieldBuilder()
-                .WithName(title)
-                .WithValue(sb.ToString())
-                .WithIsInline(false);
+            yield return new EmbedFieldProperties
+            {
+                Name = title,
+                Value = sb.ToString(),
+                Inline = false,
+            };
         }
     }
 
-    private static IEnumerable<EmbedFieldBuilder> BuildIndividualFields(List<PlayerSnapshot> players)
+    private static IEnumerable<EmbedFieldProperties> BuildIndividualFields(List<PlayerSnapshot> players)
     {
         var sb = new StringBuilder();
 
@@ -114,10 +118,12 @@ public static class PlayEmbedBuilder
                 sb.AppendLine($"```Role: {player.Role}```");
         }
 
-        yield return new EmbedFieldBuilder()
-            .WithName("Players")
-            .WithValue(sb.ToString())
-            .WithIsInline(false);
+        yield return new EmbedFieldProperties
+        {
+            Name = "Players",
+            Value = sb.ToString(),
+            Inline = false,
+        };
     }
 
     private static void AppendScore(StringBuilder sb, PlayerSnapshot player)

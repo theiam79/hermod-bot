@@ -1,11 +1,9 @@
 using System.Text;
-using Discord;
-using Discord.Net;
-using Discord.WebSocket;
 using Hermod.Bot.Data;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using NetCord.Rest;
 
 namespace Hermod.Bot.Handlers;
 
@@ -14,7 +12,7 @@ public static class DistributePlayFileHandler
     public static async Task Handle(
         DistributePlayFile message,
         BotDbContext db,
-        DiscordSocketClient discord,
+        RestClient rest,
         ILogger logger)
     {
         var mapping = await db.DiscordUserMappings
@@ -28,31 +26,23 @@ public static class DistributePlayFileHandler
             return;
         }
 
-        var user = await discord.Rest.GetUserAsync(mapping.DiscordUserId);
-        if (user is null)
-        {
-            logger.LogWarning(
-                "Discord user {DiscordUserId} not found via REST, skipping file distribution",
-                mapping.DiscordUserId);
-            return;
-        }
-
         try
         {
-            var dmChannel = await user.CreateDMChannelAsync();
+            var dmChannel = await rest.GetDMChannelAsync(mapping.DiscordUserId);
             var bytes = Encoding.UTF8.GetBytes(message.FileContent);
             using var stream = new MemoryStream(bytes);
 
-            await dmChannel.SendFileAsync(
-                stream,
-                message.FileName,
-                "A play file has been shared with you!");
+            await rest.SendMessageAsync(dmChannel.Id, new MessageProperties
+            {
+                Content = "A play file has been shared with you!",
+                Attachments = [new AttachmentProperties(message.FileName, stream)],
+            });
 
             logger.LogInformation(
                 "Distributed play file {FileName} to Discord user {DiscordUserId}",
                 message.FileName, mapping.DiscordUserId);
         }
-        catch (HttpException ex)
+        catch (RestException ex)
         {
             logger.LogWarning(ex,
                 "Failed to DM play file to Discord user {DiscordUserId} — DMs may be disabled",

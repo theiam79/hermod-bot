@@ -1,11 +1,14 @@
-using Discord;
-using Discord.Addons.Hosting;
-using Discord.Interactions;
-using Discord.WebSocket;
 using Hermod.Bot.Data;
-using Hermod.Bot.Services;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
+using NetCord;
+using NetCord.Gateway;
+using NetCord.Hosting.Gateway;
+using NetCord.Hosting.Services;
+using NetCord.Hosting.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ApplicationCommands;
+using NetCord.Services.ComponentInteractions;
 using Wolverine;
 using Wolverine.Nats;
 
@@ -17,26 +20,16 @@ var natsUrl = builder.Configuration.GetConnectionString("nats")
 
 builder.AddNpgsqlDbContext<BotDbContext>("bot-db");
 
-builder.Services.AddDiscordHost((config, _) =>
-{
-    config.SocketConfig = new DiscordSocketConfig
+// NetCord: reads token from Discord:Token in IConfiguration automatically
+builder.Services
+    .AddDiscordGateway(options =>
     {
-        LogLevel = LogSeverity.Info,
-        GatewayIntents = GatewayIntents.Guilds,
-    };
-
-    config.Token = builder.Configuration["Discord:Token"]
-        ?? throw new InvalidOperationException("Discord:Token is not configured.");
-});
-
-builder.Services.AddInteractionService((config, _) =>
-{
-    config.DefaultRunMode = RunMode.Async;
-    config.LogLevel = LogSeverity.Info;
-});
-
-builder.Services.AddHostedService<InteractionHandler>();
-builder.Services.AddHostedService<GuildEventService>();
+        options.Intents = GatewayIntents.Guilds;
+    })
+    .AddApplicationCommands<SlashCommandInteraction, SlashCommandContext>()
+    .AddApplicationCommands<MessageCommandInteraction, MessageCommandContext>()
+    .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+    .AddGatewayHandlers(typeof(Program).Assembly);
 
 builder.UseWolverine(opts =>
 {
@@ -69,6 +62,7 @@ using (var scope = host.Services.CreateScope())
     await botDb.Database.MigrateAsync();
 }
 
-host.Run();
+host.AddModules(typeof(Program).Assembly);
+await host.RunAsync();
 
 public partial class Program;

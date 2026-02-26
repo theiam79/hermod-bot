@@ -1,20 +1,23 @@
 using System.Text.Json;
-using Discord;
-using Discord.Interactions;
-using Discord.WebSocket;
 using Hermod.Bot.Data;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
+using NetCord;
+using NetCord.Rest;
+using NetCord.Services.ApplicationCommands;
+using NetCord.Services.ComponentInteractions;
 using Wolverine;
 
 namespace Hermod.Bot.Modules;
 
-public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionModuleBase<SocketInteractionContext>
+public class ClaimPlayerCommandModule(IServiceScopeFactory scopeFactory) : ApplicationCommandModule<MessageCommandContext>
 {
     [MessageCommand("Claim Player")]
-    public async Task ClaimPlayerAsync(global::Discord.IMessage message)
+    public async Task ClaimPlayerAsync()
     {
-        await DeferAsync(ephemeral: true);
+        await RespondAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
+        var message = Context.Interaction.Data.TargetMessage;
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
@@ -24,37 +27,31 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
 
         if (post is null)
         {
-            await FollowupAsync("This isn't a Hermod play embed.", ephemeral: true);
+            await FollowupAsync(new() { Content = "This isn't a Hermod play embed.", Flags = MessageFlags.Ephemeral });
             return;
         }
 
         if (string.IsNullOrEmpty(post.PlayersJson))
         {
-            await FollowupAsync("This play has no player data. Try re-uploading.", ephemeral: true);
+            await FollowupAsync(new() { Content = "This play has no player data. Try re-uploading.", Flags = MessageFlags.Ephemeral });
             return;
         }
 
         var players = JsonSerializer.Deserialize<List<PlayerSnapshot>>(post.PlayersJson);
         if (players is null or { Count: 0 })
         {
-            await FollowupAsync("No players found in this play.", ephemeral: true);
+            await FollowupAsync(new() { Content = "No players found in this play.", Flags = MessageFlags.Ephemeral });
             return;
         }
 
         var claimable = players.Where(p => p.MappedUserId is null).ToList();
         if (claimable.Count == 0)
         {
-            await FollowupAsync("All players in this play have already been linked.", ephemeral: true);
+            await FollowupAsync(new() { Content = "All players in this play have already been linked.", Flags = MessageFlags.Ephemeral });
             return;
         }
 
-        var menuBuilder = new SelectMenuBuilder()
-            .WithCustomId($"claim-player:{post.PlayId}")
-            .WithPlaceholder("Select your player")
-            .WithMinValues(1)
-            .WithMaxValues(1);
-
-        foreach (var player in claimable.Take(25))
+        var options = claimable.Take(25).Select(player =>
         {
             var description = player.CalculatedScore is { } score and not 0
                 ? $"Score: {score}"
@@ -62,29 +59,46 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
                     ? $"Score: {player.Score}"
                     : null;
 
-            menuBuilder.AddOption(player.PlayerName, player.BgStatsPlayerUuid, description);
-        }
+            return new StringMenuSelectOptionProperties(player.PlayerName, player.BgStatsPlayerUuid)
+            {
+                Description = description,
+            };
+        }).ToArray();
 
-        var component = new ComponentBuilder()
-            .WithSelectMenu(menuBuilder)
-            .Build();
-
-        await FollowupAsync("Which player are you?", components: component, ephemeral: true);
-    }
-
-    [ComponentInteraction("claim-player:*")]
-    public async Task HandleClaimSelectionAsync(string playIdStr, string[] selectedValues)
-    {
-        await DeferAsync(ephemeral: true);
-
-        if (!Guid.TryParse(playIdStr, out var playId))
+        var menu = new StringMenuProperties($"claim-player:{post.PlayId}", options)
         {
-            await FollowupAsync("Invalid play reference.", ephemeral: true);
+            Placeholder = "Select your player",
+            MinValues = 1,
+            MaxValues = 1,
+        };
+
+        await FollowupAsync(new()
+        {
+            Content = "Which player are you?",
+            Components = [menu],
+            Flags = MessageFlags.Ephemeral,
+        });
+    }
+}
+
+public class ClaimPlayerSelectionModule(IServiceScopeFactory scopeFactory) : ComponentInteractionModule<StringMenuInteractionContext>
+{
+    [ComponentInteraction("claim-player")]
+    public async Task HandleClaimSelectionAsync()
+    {
+        await RespondAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
+        // Extract play ID from the custom ID: "claim-player:{playId}"
+        var customId = Context.Interaction.Data.CustomId;
+        var colonIndex = customId.IndexOf(':');
+        if (colonIndex < 0 || !Guid.TryParse(customId[(colonIndex + 1)..], out var playId))
+        {
+            await FollowupAsync(new() { Content = "Invalid play reference.", Flags = MessageFlags.Ephemeral });
             return;
         }
 
-        var selectedUuid = selectedValues[0];
-        var discordId = Context.User.Id.ToString();
+        var selectedUuid = Context.Interaction.Data.SelectedValues[0];
+        var discordId = Context.Interaction.User.Id.ToString();
 
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
@@ -95,7 +109,7 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
             timeout: TimeSpan.FromSeconds(10));
 
         if (result.UserId.HasValue)
-            await DiscordUserMappingHelper.UpsertAsync(db, Context.User.Id, result.UserId.Value);
+            await DiscordUserMappingHelper.UpsertAsync(db, Context.Interaction.User.Id, result.UserId.Value);
 
         var response = result.Status switch
         {
@@ -107,7 +121,6 @@ public class ClaimPlayerModule(IServiceScopeFactory scopeFactory) : InteractionM
             _ => "Something went wrong. Please try again later.",
         };
 
-        await FollowupAsync(response, ephemeral: true);
+        await FollowupAsync(new() { Content = response, Flags = MessageFlags.Ephemeral });
     }
-
 }

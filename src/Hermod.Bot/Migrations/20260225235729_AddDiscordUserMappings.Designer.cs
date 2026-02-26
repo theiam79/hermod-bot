@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Bot.Migrations
 {
     [DbContext(typeof(BotDbContext))]
-    [Migration("20260225042332_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20260225235729_AddDiscordUserMappings")]
+    partial class AddDiscordUserMappings
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -24,6 +24,32 @@ namespace Hermod.Bot.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("Hermod.Bot.Data.DiscordUserMappingEntity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DiscordUserId")
+                        .HasColumnType("numeric(20,0)");
+
+                    b.Property<Guid>("HermodUserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DiscordUserId")
+                        .IsUnique();
+
+                    b.HasIndex("HermodUserId")
+                        .IsUnique();
+
+                    b.ToTable("DiscordUserMappings");
+                });
 
             modelBuilder.Entity("Hermod.Bot.Data.GuildMappingEntity", b =>
                 {
