@@ -86,13 +86,16 @@
 		padding: 0.5rem 0;
 		border-bottom: 1px solid var(--color-border);
 		display: flex;
+		flex-wrap: wrap;
 		justify-content: space-between;
-		align-items: center;
+		align-items: baseline;
+		gap: 0.25rem;
 	}
 
 	.meta {
 		font-size: 0.85rem;
 		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	.badge {

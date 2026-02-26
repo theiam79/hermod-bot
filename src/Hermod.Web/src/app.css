@@ -26,6 +26,7 @@ body {
 	color: var(--color-text);
 	line-height: 1.6;
 	min-height: 100vh;
+	overflow-wrap: break-word;
 }
 
 a {
@@ -56,9 +57,11 @@ button:disabled {
 	cursor: not-allowed;
 }
 
-.btn-primary {
+.btn-primary,
+a.btn-primary {
 	background: var(--color-primary);
-	color: white;
+	color: #1d2323;
+	font-weight: 600;
 }
 
 .btn-secondary {

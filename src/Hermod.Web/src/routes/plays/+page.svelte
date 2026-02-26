@@ -43,28 +43,21 @@
 		<p>No plays found. <a href="/upload">Upload a .bgsplay file</a> to get started.</p>
 	</div>
 {:else}
-	<table>
-		<thead>
-			<tr>
-				<th>Game</th>
-				<th>Date</th>
-				<th>Players</th>
-				<th>Duration</th>
-				<th>Location</th>
-			</tr>
-		</thead>
-		<tbody>
-			{#each plays as play}
-				<tr>
-					<td><strong>{play.gameName}</strong></td>
-					<td>{new Date(play.datePlayed).toLocaleDateString()}</td>
-					<td>{play.playerCount}</td>
-					<td>{play.duration ?? '-'}</td>
-					<td>{play.locationName ?? '-'}</td>
-				</tr>
-			{/each}
-		</tbody>
-	</table>
+	<div class="play-list">
+		{#each plays as play}
+			<div class="card play-card">
+				<div class="play-header">
+					<strong>{play.gameName}</strong>
+					<span class="meta">{new Date(play.datePlayed).toLocaleDateString()}</span>
+				</div>
+				<div class="play-details">
+					<span>{play.playerCount} player{play.playerCount === 1 ? '' : 's'}</span>
+					{#if play.duration}<span>{play.duration} min</span>{/if}
+					{#if play.locationName}<span>{play.locationName}</span>{/if}
+				</div>
+			</div>
+		{/each}
+	</div>
 
 	{#if totalPages > 1}
 		<div class="pagination">
@@ -80,26 +73,41 @@
 		margin-bottom: 1.5rem;
 	}
 
-	table {
-		width: 100%;
-		border-collapse: collapse;
-		background: var(--color-surface);
-		border-radius: var(--radius);
-		overflow: hidden;
+	.play-list {
+		display: flex;
+		flex-direction: column;
+		gap: 0.75rem;
 	}
 
-	th,
-	td {
-		text-align: left;
-		padding: 0.75rem 1rem;
-		border-bottom: 1px solid var(--color-border);
+	.play-card {
+		padding: 1rem;
 	}
 
-	th {
-		background: var(--color-surface-alt);
+	.play-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: baseline;
+		gap: 0.5rem;
+		margin-bottom: 0.35rem;
+	}
+
+	.play-details {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5rem;
 		font-size: 0.85rem;
-		text-transform: uppercase;
 		color: var(--color-text-muted);
+	}
+
+	.play-details span:not(:last-child)::after {
+		content: '\00b7';
+		margin-left: 0.5rem;
+	}
+
+	.meta {
+		font-size: 0.85rem;
+		color: var(--color-text-muted);
+		white-space: nowrap;
 	}
 
 	.pagination {

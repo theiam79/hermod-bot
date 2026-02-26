@@ -23,11 +23,11 @@
 <style>
 	.hero {
 		text-align: center;
-		padding: 4rem 1rem;
+		padding: 2rem 1rem;
 	}
 
 	h1 {
-		font-size: 3rem;
+		font-size: 2rem;
 		color: var(--color-primary);
 		margin-bottom: 0.5rem;
 	}
@@ -35,7 +35,7 @@
 	p {
 		color: var(--color-text-muted);
 		margin-bottom: 1.5rem;
-		font-size: 1.1rem;
+		font-size: 1rem;
 	}
 
 	.muted {
@@ -46,6 +46,7 @@
 		display: flex;
 		gap: 1rem;
 		justify-content: center;
+		flex-wrap: wrap;
 	}
 
 	[role='button'] {
@@ -53,5 +54,19 @@
 		padding: 0.6em 1.2em;
 		border-radius: var(--radius);
 		font-size: 1rem;
+	}
+
+	@media (min-width: 640px) {
+		.hero {
+			padding: 4rem 1rem;
+		}
+
+		h1 {
+			font-size: 3rem;
+		}
+
+		p {
+			font-size: 1.1rem;
+		}
 	}
 </style>
