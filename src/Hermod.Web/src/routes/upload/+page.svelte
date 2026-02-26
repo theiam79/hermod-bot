@@ -79,6 +79,14 @@
 			<span class="btn-primary">{uploading ? 'Uploading...' : 'Choose file'}</span>
 		</label>
 
+		<p class="hint">
+			{#if /iPad|iPhone|iPod/.test(navigator.userAgent)}
+				In BGStats, export your plays as a .bgsplay file to the Files app, then select it here.
+			{:else}
+				On Android, you can share .bgsplay files directly from BGStats to Hermod.
+			{/if}
+		</p>
+
 		{#if result}
 			<div class="alert alert-success">
 				Uploaded <strong>{result.playCount}</strong> play{result.playCount === 1 ? '' : 's'} successfully.
@@ -119,5 +127,10 @@
 		height: 1px;
 		overflow: hidden;
 		clip: rect(0, 0, 0, 0);
+	}
+
+	.hint {
+		color: var(--color-text-muted);
+		font-size: 0.85em;
 	}
 </style>

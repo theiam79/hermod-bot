@@ -1,11 +1,11 @@
 :root {
-	--color-bg: #1a1a2e;
-	--color-surface: #16213e;
-	--color-surface-alt: #0f3460;
-	--color-primary: #e94560;
+	--color-bg: #1d2323;
+	--color-surface: #263030;
+	--color-surface-alt: #1a2828;
+	--color-primary: #f3b81d;
 	--color-text: #eee;
 	--color-text-muted: #aaa;
-	--color-border: #333;
+	--color-border: #3a4444;
 	--color-success: #4caf50;
 	--color-error: #f44336;
 	--radius: 8px;
