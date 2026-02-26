@@ -19,6 +19,19 @@ public sealed class SelectiveSampler(double wolverineRatio = 0.05) : Sampler
         return sampler.ShouldSample(parameters);
     }
 
-    private static bool IsWolverineInternal(in SamplingParameters parameters) =>
-        parameters.Name.StartsWith("wolverine", StringComparison.OrdinalIgnoreCase);
+    private static bool IsWolverineInternal(in SamplingParameters parameters)
+    {
+        // Wolverine durability agent spans show up as Npgsql "postgresql" client spans,
+        // not as Wolverine activity source spans. Match on the SQL query text instead.
+        if (!parameters.Name.Equals("postgresql", StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var queryText = parameters.Tags?
+            .FirstOrDefault(t => t.Key == "db.query.text")
+            .Value?.ToString();
+
+        return queryText is not null
+            && (queryText.Contains("wolverine.", StringComparison.OrdinalIgnoreCase)
+                || queryText.Contains("pg_try_advisory_xact_lock", StringComparison.OrdinalIgnoreCase));
+    }
 }
