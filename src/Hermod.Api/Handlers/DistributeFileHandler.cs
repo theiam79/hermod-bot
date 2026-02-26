@@ -1,27 +1,20 @@
 using Hermod.Api.Messages;
 using Hermod.BGStats;
 using Hermod.Data;
-using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging;
 using Wolverine;
 
 namespace Hermod.Api.Handlers;
 
 public static class DistributeFileHandler
 {
-    public static async Task<(HandlerContinuation, UploadEntity?)> LoadAsync(
+    public static async Task<OutgoingMessages> Handle(
         PlayFileUploaded message, HermodContext db)
     {
-        var upload = await db.Uploads.FindAsync(UploadId.From(message.UploadId));
-        if (upload is null) return (HandlerContinuation.Stop, null);
-        return (HandlerContinuation.Continue, upload);
-    }
+        var upload = await db.Uploads.FindAsync(UploadId.From(message.UploadId))
+            ?? throw new InvalidOperationException($"Upload {message.UploadId} not found");
 
-    public static async Task<OutgoingMessages> Handle(
-        PlayFileUploaded message, UploadEntity upload, HermodContext db)
-    {
         var result = PlayFileParser.Parse(upload.FileContent);
 
         // Collect all unique player UUIDs across all plays, excluding the uploader

@@ -139,6 +139,7 @@ builder.Host.UseWolverine(opts =>
     opts.Durability.NodeAssignmentHealthCheckTracingEnabled = false;
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.AutoApplyTransactions();
+    opts.Policies.UseDurableLocalQueues();
     opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
 
     opts.UseNats(natsUrl)
@@ -156,6 +157,12 @@ builder.Host.UseWolverine(opts =>
 
     opts.OnException<Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException>()
         .RetryWithCooldown(TimeSpan.FromMilliseconds(50), TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(250));
+
+    // Handlers can race ahead of the HTTP endpoint's transaction commit when
+    // Wolverine dispatches durable local messages in-memory. A cooldown retry
+    // gives the transaction time to commit before re-querying.
+    opts.OnException<InvalidOperationException>()
+        .RetryWithCooldown(TimeSpan.FromMilliseconds(200), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2));
 });
 
 builder.Services.AddWolverineHttp();
@@ -166,10 +173,27 @@ var app = builder.Build();
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
+    ForwardLimit = null, // Allow multiple proxy hops (e.g. tunnel → YARP → Vite → API)
 };
 forwardedHeadersOptions.KnownIPNetworks.Clear();
 forwardedHeadersOptions.KnownProxies.Clear();
 app.UseForwardedHeaders(forwardedHeadersOptions);
+
+// When behind a dev tunnel, the YARP container overwrites X-Forwarded-Host
+// (Set mode, not Append), so the tunnel's original host is lost. Override the
+// request scheme/host explicitly from the injected tunnel URL.
+if (app.Configuration["Auth:ExternalBaseUrl"] is { Length: > 0 } externalBaseUrl)
+{
+    var externalUri = new Uri(externalBaseUrl.TrimEnd('/'));
+    app.Use((context, next) =>
+    {
+        context.Request.Scheme = externalUri.Scheme;
+        context.Request.Host = externalUri.IsDefaultPort
+            ? new HostString(externalUri.Host)
+            : new HostString(externalUri.Host, externalUri.Port);
+        return next();
+    });
+}
 
 app.MapDefaultEndpoints();
 
