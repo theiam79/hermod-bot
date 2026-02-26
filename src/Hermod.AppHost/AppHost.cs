@@ -4,6 +4,9 @@ var discordToken = builder.AddParameter("discord-token", secret: true);
 var discordClientId = builder.AddParameter("discord-client-id");
 var discordClientSecret = builder.AddParameter("discord-client-secret", secret: true);
 
+var skipBot = builder.Configuration["SkipBot"] is "true" or "True";
+var useTunnel = builder.Configuration["UseTunnel"] is "true" or "True";
+
 var postgres = builder.AddPostgres("postgres")
     .WithDataVolume()
     .WithPgAdmin();
@@ -27,9 +30,13 @@ var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
     .WithReference(botDb)
     .WithReference(nats)
     .WithEnvironment("Discord__Token", discordToken)
-    .WithEnvironment("WebApp__BaseUrl", "http://localhost:8080")
     .WaitFor(botDb)
     .WaitFor(nats);
+
+if (skipBot)
+{
+    bot.WithExplicitStart();
+}
 
 var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
     .WithReference(api)
@@ -40,7 +47,7 @@ var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
     })
     ;
 
-builder.AddYarp("hermod-gateway")
+var gateway = builder.AddYarp("hermod-gateway")
     .WithHostPort(8080)
     .WithHostHttpsPort(8443)
     .WithConfiguration(yarp =>
@@ -62,5 +69,19 @@ builder.AddYarp("hermod-gateway")
     })
     .WithExternalHttpEndpoints()
     .PublishWithStaticFiles(frontend);
+
+if (useTunnel)
+{
+    var tunnel = builder.AddDevTunnel("hermod-tunnel")
+        .WithReference(gateway, allowAnonymous: true);
+
+    var tunnelEndpoint = tunnel.GetEndpoint(gateway, "http");
+    bot.WithEnvironment("WebApp__BaseUrl", tunnelEndpoint);
+    api.WithEnvironment("Auth__ExternalBaseUrl", tunnelEndpoint);
+}
+else
+{
+    bot.WithEnvironment("WebApp__BaseUrl", "http://localhost:8080");
+}
 
 builder.Build().Run();
