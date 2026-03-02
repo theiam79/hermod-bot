@@ -33,16 +33,10 @@ public static class PersistPlayHandler
                 UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null,
                 BgStatsPlayUuid = bgStatsUuid,
                 GameName = play.Game.Name,
-                BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null,
-                GameThumbnailUrl = string.IsNullOrEmpty(play.Game.ThumbnailUrl) ? null : play.Game.ThumbnailUrl,
-                DatePlayed = DateTime.SpecifyKind(play.DatePlayed, DateTimeKind.Utc),
-                Duration = play.Duration > TimeSpan.Zero ? play.Duration : null,
-                LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name,
-                Rounds = play.Rounds > 0 ? play.Rounds : null,
-                Comments = play.Comments,
                 CreatedAt = timeProvider.GetUtcNow().UtcDateTime,
                 Players = CreatePlayers(play, playId),
             };
+            ApplyPlayFields(entity, play);
 
             db.Plays.Add(entity);
             changeType = PlayChangeType.Created;
@@ -51,15 +45,8 @@ public static class PersistPlayHandler
         {
             entity = existing;
             entity.UploadId = message.UploadId.HasValue ? UploadId.From(message.UploadId.Value) : null;
-            entity.GameName = play.Game.Name;
-            entity.BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null;
-            entity.GameThumbnailUrl = string.IsNullOrEmpty(play.Game.ThumbnailUrl) ? null : play.Game.ThumbnailUrl;
-            entity.DatePlayed = DateTime.SpecifyKind(play.DatePlayed, DateTimeKind.Utc);
-            entity.Duration = play.Duration > TimeSpan.Zero ? play.Duration : null;
-            entity.LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name;
-            entity.Rounds = play.Rounds > 0 ? play.Rounds : null;
-            entity.Comments = play.Comments;
             entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
+            ApplyPlayFields(entity, play);
 
             // Replace players
             db.PlayPlayers.RemoveRange(entity.Players);
@@ -112,6 +99,18 @@ public static class PersistPlayHandler
         }
 
         return new PlayPersisted(entity.Id.Value, message.UploadedById, changeType);
+    }
+
+    private static void ApplyPlayFields(PlayEntity entity, BGStats.Models.Play play)
+    {
+        entity.GameName = play.Game.Name;
+        entity.BggGameId = play.Game.BggId > 0 ? play.Game.BggId : null;
+        entity.GameThumbnailUrl = string.IsNullOrEmpty(play.Game.ThumbnailUrl) ? null : play.Game.ThumbnailUrl;
+        entity.DatePlayed = DateTime.SpecifyKind(play.DatePlayed, DateTimeKind.Utc);
+        entity.Duration = play.Duration > TimeSpan.Zero ? play.Duration : null;
+        entity.LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name;
+        entity.Rounds = play.Rounds > 0 ? play.Rounds : null;
+        entity.Comments = play.Comments;
     }
 
     private static List<PlayPlayerEntity> CreatePlayers(BGStats.Models.Play play, PlayId playId) =>
