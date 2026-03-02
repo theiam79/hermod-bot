@@ -105,7 +105,7 @@ public class ClaimPlayerSelectionModule(IServiceScopeFactory scopeFactory) : Com
         var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
 
         var result = await bus.InvokeAsync<ClaimPlayerResult>(
-            new ClaimPlayer("Discord", discordId, selectedUuid, playId),
+            new ClaimPlayer(Providers.Discord, discordId, selectedUuid, playId),
             timeout: TimeSpan.FromSeconds(10));
 
         if (result.UserId.HasValue)

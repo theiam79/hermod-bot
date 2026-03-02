@@ -8,7 +8,7 @@ public static class GroupIdFactory
     // Stable namespace GUIDs — one per provider. Never change these.
     private static readonly Dictionary<string, Guid> ProviderNamespaces = new()
     {
-        ["Discord"] = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
+        [Providers.Discord] = Guid.Parse("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
     };
 
     public static Guid ForCommunity(string provider, string platformId)
@@ -20,7 +20,7 @@ public static class GroupIdFactory
     }
 
     public static Guid ForDiscordGuild(ulong discordGuildId) =>
-        ForCommunity("Discord", discordGuildId.ToString());
+        ForCommunity(Providers.Discord, discordGuildId.ToString());
 
     /// <summary>
     /// UUID v5 per RFC 4122: SHA-1 hash of namespace + name, with version/variant bits set.

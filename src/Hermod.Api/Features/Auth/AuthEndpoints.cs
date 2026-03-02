@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using Hermod.Api.Auth;
+using Hermod.Messages;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Wolverine.Http;
@@ -12,7 +13,7 @@ public static class AuthEndpoints
     public static IResult Login(HttpContext context, string? returnUrl = "/")
     {
         var properties = new AuthenticationProperties { RedirectUri = returnUrl };
-        return Results.Challenge(properties, ["Discord"]);
+        return Results.Challenge(properties, [Providers.Discord]);
     }
 
     [WolverineGet("/auth/me")]

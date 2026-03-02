@@ -57,7 +57,7 @@ public class GuildCreateHandler(
     {
         logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
         var registered = await bus.InvokeAsync<CommunityRegistered>(
-            new RegisterCommunity("Discord", discordGuildId.ToString(), guildName),
+            new RegisterCommunity(Providers.Discord, discordGuildId.ToString(), guildName),
             timeout: TimeSpan.FromSeconds(10));
 
         var existing = await db.GuildMappings
@@ -191,7 +191,7 @@ public class ReadyHandler(
     {
         logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
         var registered = await bus.InvokeAsync<CommunityRegistered>(
-            new RegisterCommunity("Discord", discordGuildId.ToString(), guildName),
+            new RegisterCommunity(Providers.Discord, discordGuildId.ToString(), guildName),
             timeout: TimeSpan.FromSeconds(10));
 
         var existing = await db.GuildMappings

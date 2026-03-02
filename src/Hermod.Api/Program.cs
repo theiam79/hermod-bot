@@ -1,7 +1,7 @@
-using System.Security.Claims;
+using Hermod.Api.Features.Auth;
 using Hermod.Auth;
 using Hermod.Data;
-using Microsoft.AspNetCore.Authentication;
+using Hermod.Messages;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
@@ -46,7 +46,7 @@ builder.Services.AddScoped<IExternalUserResolver, ExternalUserResolver>();
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = "Discord";
+    options.DefaultChallengeScheme = Providers.Discord;
 })
 .AddCookie(options =>
 {
@@ -69,23 +69,7 @@ builder.Services.AddAuthentication(options =>
         ?? throw new InvalidOperationException("Discord:ClientSecret is not configured.");
     options.CallbackPath = "/signin-discord";
     options.SaveTokens = false;
-    options.Events.OnCreatingTicket = async context =>
-    {
-        var discordId = context.Identity?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (discordId is null) return;
-
-        var displayName = context.Identity?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
-        var avatarUrl = context.User.GetProperty("avatar").GetString() is { } avatar
-            ? $"https://cdn.discordapp.com/avatars/{discordId}/{avatar}.png"
-            : null;
-
-        var loginService = context.HttpContext.RequestServices.GetRequiredService<ExternalLoginService>();
-        var (userId, _) = await loginService.ProvisionOrUpdateAsync("Discord", discordId, displayName, avatarUrl);
-
-        context.Identity!.AddClaim(new Claim(Hermod.Api.Auth.ClaimsPrincipalExtensions.UserIdClaimType, userId.ToString()));
-        if (avatarUrl is not null)
-            context.Identity.AddClaim(new Claim("urn:discord:avatar:url", avatarUrl));
-    };
+    options.Events.OnCreatingTicket = DiscordOAuthEvents.OnCreatingTicket;
 });
 
 builder.Services.AddAuthorization();

@@ -40,7 +40,7 @@ public class EnrollModule(
         var discordId = Context.Interaction.User.Id.ToString();
 
         var result = await bus.InvokeAsync<EnrollmentResult>(
-            new EnrollInGroup("Discord", discordId, mapping.GroupId),
+            new EnrollInGroup(Providers.Discord, discordId, mapping.GroupId),
             timeout: TimeSpan.FromSeconds(10));
 
         if (result.UserId.HasValue)
