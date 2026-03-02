@@ -56,8 +56,8 @@ public class GuildCreateHandler(
     private async Task RegisterNewGuildAsync(ulong discordGuildId, string guildName, BotDbContext db, IMessageBus bus)
     {
         logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
-        var registered = await bus.InvokeAsync<GuildRegistered>(
-            new RegisterGuild(discordGuildId, guildName),
+        var registered = await bus.InvokeAsync<CommunityRegistered>(
+            new RegisterCommunity("Discord", discordGuildId.ToString(), guildName),
             timeout: TimeSpan.FromSeconds(10));
 
         var existing = await db.GuildMappings
@@ -190,8 +190,8 @@ public class ReadyHandler(
     private async Task RegisterNewGuildAsync(ulong discordGuildId, string guildName, BotDbContext db, IMessageBus bus)
     {
         logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
-        var registered = await bus.InvokeAsync<GuildRegistered>(
-            new RegisterGuild(discordGuildId, guildName),
+        var registered = await bus.InvokeAsync<CommunityRegistered>(
+            new RegisterCommunity("Discord", discordGuildId.ToString(), guildName),
             timeout: TimeSpan.FromSeconds(10));
 
         var existing = await db.GuildMappings

@@ -1,7 +1,6 @@
 using System.Security.Claims;
-using Hermod.Api.Auth;
+using Hermod.Auth;
 using Hermod.Data;
-using Hermod.Data.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -40,6 +39,9 @@ builder.EnrichNpgsqlDbContext<HermodContext>(settings =>
 
 builder.AddNpgsqlDbContext<AuthDbContext>("auth-db");
 
+builder.Services.AddScoped<ExternalLoginService>();
+builder.Services.AddScoped<IExternalUserResolver, ExternalUserResolver>();
+
 // Authentication
 builder.Services.AddAuthentication(options =>
 {
@@ -77,49 +79,8 @@ builder.Services.AddAuthentication(options =>
             ? $"https://cdn.discordapp.com/avatars/{discordId}/{avatar}.png"
             : null;
 
-        var authDb = context.HttpContext.RequestServices.GetRequiredService<AuthDbContext>();
-
-        var login = await authDb.ExternalLogins
-            .Include(e => e.User)
-            .FirstOrDefaultAsync(e => e.Provider == "Discord" && e.ProviderKey == discordId);
-
-        Guid userId;
-        if (login is null)
-        {
-            // First login — create auth user + external login + app profile
-            userId = Guid.NewGuid();
-
-            authDb.Users.Add(new AuthUser
-            {
-                Id = userId,
-                DisplayName = displayName,
-                AvatarUrl = avatarUrl,
-                CreatedAt = DateTime.UtcNow,
-                LastLoginAt = DateTime.UtcNow,
-            });
-
-            authDb.ExternalLogins.Add(new ExternalLogin
-            {
-                Id = Guid.NewGuid(),
-                UserId = userId,
-                Provider = "Discord",
-                ProviderKey = discordId,
-                CreatedAt = DateTime.UtcNow,
-            });
-
-            await authDb.SaveChangesAsync();
-        }
-        else
-        {
-            // Returning user — update last login + sync display name
-            userId = login.UserId;
-            login.User.LastLoginAt = DateTime.UtcNow;
-            login.User.DisplayName = displayName;
-            if (avatarUrl is not null)
-                login.User.AvatarUrl = avatarUrl;
-
-            await authDb.SaveChangesAsync();
-        }
+        var loginService = context.HttpContext.RequestServices.GetRequiredService<ExternalLoginService>();
+        var (userId, _) = await loginService.ProvisionOrUpdateAsync("Discord", discordId, displayName, avatarUrl);
 
         context.Identity!.AddClaim(new Claim("hermod:user_id", userId.ToString()));
         if (avatarUrl is not null)

@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 
-namespace Hermod.Api.Auth;
+namespace Hermod.Auth;
 
 public class AuthDbContextFactory : IDesignTimeDbContextFactory<AuthDbContext>
 {

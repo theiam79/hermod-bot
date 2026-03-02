@@ -1,4 +1,4 @@
-using Hermod.Api.Auth;
+using Hermod.Auth;
 using Hermod.Api.Handlers;
 using Hermod.Data;
 using Hermod.Data.Entities;
@@ -30,7 +30,7 @@ public class ClaimPlayerHandlerTests
     private static IServiceProvider BuildServices(AuthDbContext authDb)
     {
         var services = new ServiceCollection();
-        services.AddSingleton(authDb);
+        services.AddSingleton<IExternalUserResolver>(new ExternalUserResolver(authDb));
         return services.BuildServiceProvider();
     }
 
@@ -92,7 +92,7 @@ public class ClaimPlayerHandlerTests
         var (db, services, _, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
         await Assert.That(result.PlayerName).IsEqualTo("Alice");
@@ -104,7 +104,7 @@ public class ClaimPlayerHandlerTests
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
         await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
         await db.SaveChangesAsync();
 
         var mapping = await db.PlayerMappings.SingleAsync();
@@ -118,7 +118,7 @@ public class ClaimPlayerHandlerTests
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
         await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
         await db.SaveChangesAsync();
 
         var player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(playId));
@@ -151,7 +151,7 @@ public class ClaimPlayerHandlerTests
         await db.SaveChangesAsync();
 
         await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
         await db.SaveChangesAsync();
 
         var play2Player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(play2Id));
@@ -173,7 +173,7 @@ public class ClaimPlayerHandlerTests
         await db.SaveChangesAsync();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.AlreadyClaimed);
     }
@@ -185,7 +185,7 @@ public class ClaimPlayerHandlerTests
         var authDb = CreateAuthDb();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer("unknown-discord-id", Guid.NewGuid().ToString(), Guid.NewGuid()),
+            new ClaimPlayer("Discord", "unknown-discord-id", Guid.NewGuid().ToString(), Guid.NewGuid()),
             db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.NotRegistered);
@@ -197,7 +197,7 @@ public class ClaimPlayerHandlerTests
         var (db, services, _, discordId, _, playId) = await SetupRegisteredUserWithPlay();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, Guid.NewGuid().ToString(), playId), db, services);
+            new ClaimPlayer("Discord", discordId, Guid.NewGuid().ToString(), playId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.PlayerNotFound);
     }
@@ -250,7 +250,7 @@ public class ClaimPlayerHandlerTests
         await authDb.SaveChangesAsync();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, BuildServices(authDb));
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.IsUploader);
         await Assert.That(result.PlayerName).IsNull();
@@ -262,7 +262,7 @@ public class ClaimPlayerHandlerTests
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
         await Assert.That(result.UserId).IsEqualTo(userId);
@@ -282,7 +282,7 @@ public class ClaimPlayerHandlerTests
         await db.SaveChangesAsync();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.AlreadyClaimed);
         await Assert.That(result.UserId).IsEqualTo(userId);
@@ -295,7 +295,7 @@ public class ClaimPlayerHandlerTests
         var authDb = CreateAuthDb();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer("unknown-discord-id", Guid.NewGuid().ToString(), Guid.NewGuid()),
+            new ClaimPlayer("Discord", "unknown-discord-id", Guid.NewGuid().ToString(), Guid.NewGuid()),
             db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.NotRegistered);
@@ -352,7 +352,7 @@ public class ClaimPlayerHandlerTests
         await authDb.SaveChangesAsync();
 
         var result = await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, BuildServices(authDb));
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, BuildServices(authDb));
         await db.SaveChangesAsync();
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
@@ -389,7 +389,7 @@ public class ClaimPlayerHandlerTests
         await db.SaveChangesAsync();
 
         await ClaimPlayerHandler.Handle(
-            new ClaimPlayer(discordId, playerUuid, playId), db, services);
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
         await db.SaveChangesAsync();
 
         var play2Player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(play2Id));

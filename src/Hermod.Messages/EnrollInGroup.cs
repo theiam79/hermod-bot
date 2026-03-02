@@ -1,6 +1,6 @@
 namespace Hermod.Messages;
 
-public record EnrollInGroup(string DiscordId, Guid GroupId);
+public record EnrollInGroup(string Provider, string ProviderKey, Guid GroupId);
 
 public record EnrollmentResult(EnrollmentStatus Status, Guid? UserId = null);
 

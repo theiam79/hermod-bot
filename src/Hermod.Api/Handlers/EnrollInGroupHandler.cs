@@ -1,16 +1,15 @@
-using Hermod.Api.Auth;
+using Hermod.Auth;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Hermod.Api.Handlers;
 
 public static class EnrollInGroupHandler
 {
-    // AuthDbContext resolved via IServiceProvider so Wolverine sees only HermodContext
-    // for transaction management (AuthDbContext is read-only here).
+    // IExternalUserResolver resolved via IServiceProvider so Wolverine sees only HermodContext
+    // for transaction management (AuthDbContext is a transitive dependency of ExternalUserResolver).
     public static async Task<EnrollmentResult> Handle(
         EnrollInGroup message, HermodContext db, IServiceProvider services)
     {
@@ -19,14 +18,12 @@ public static class EnrollInGroupHandler
         if (group is null)
             return new EnrollmentResult(EnrollmentStatus.GroupNotFound);
 
-        var authDb = services.GetRequiredService<AuthDbContext>();
-        var login = await authDb.ExternalLogins
-            .Include(e => e.User)
-            .FirstOrDefaultAsync(e => e.Provider == "Discord" && e.ProviderKey == message.DiscordId);
-        if (login is null)
+        var userResolver = services.GetRequiredService<IExternalUserResolver>();
+        var externalUser = await userResolver.ResolveAsync(message.Provider, message.ProviderKey);
+        if (externalUser is null)
             return new EnrollmentResult(EnrollmentStatus.NotRegistered);
 
-        var userId = UserId.From(login.UserId);
+        var userId = UserId.From(externalUser.UserId);
 
         var hasProfile = await db.UserProfiles.AnyAsync(p => p.Id == userId);
         if (!hasProfile)
@@ -34,14 +31,14 @@ public static class EnrollInGroupHandler
             db.UserProfiles.Add(new UserProfileEntity
             {
                 Id = userId,
-                DisplayName = login.User.DisplayName,
+                DisplayName = externalUser.DisplayName,
             });
         }
 
         var existing = await db.UserGroups
             .AnyAsync(ug => ug.UserId == userId && ug.GroupId == groupId);
         if (existing)
-            return new EnrollmentResult(EnrollmentStatus.AlreadyMember, login.UserId);
+            return new EnrollmentResult(EnrollmentStatus.AlreadyMember, externalUser.UserId);
 
         db.UserGroups.Add(new UserGroupEntity
         {
@@ -49,6 +46,6 @@ public static class EnrollInGroupHandler
             GroupId = groupId,
             Role = GroupRole.Member,
         });
-        return new EnrollmentResult(EnrollmentStatus.Enrolled, login.UserId);
+        return new EnrollmentResult(EnrollmentStatus.Enrolled, externalUser.UserId);
     }
 }

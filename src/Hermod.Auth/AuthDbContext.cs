@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Hermod.Api.Auth;
+namespace Hermod.Auth;
 
 public class AuthUser
 {

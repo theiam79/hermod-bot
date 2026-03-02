@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Hermod.Api\Hermod.Api.csproj" />
+    <ProjectReference Include="..\..\src\Hermod.Auth\Hermod.Auth.csproj" />
     <ProjectReference Include="..\..\src\Hermod.Messages\Hermod.Messages.csproj" />
   </ItemGroup>
 

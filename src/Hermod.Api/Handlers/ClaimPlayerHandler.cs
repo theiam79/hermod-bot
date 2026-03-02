@@ -1,27 +1,24 @@
-using Hermod.Api.Auth;
+using Hermod.Auth;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Hermod.Api.Handlers;
 
 public static class ClaimPlayerHandler
 {
-    // AuthDbContext resolved via IServiceProvider so Wolverine sees only HermodContext
-    // for transaction management (AuthDbContext is read-only here).
+    // IExternalUserResolver resolved via IServiceProvider so Wolverine sees only HermodContext
+    // for transaction management (AuthDbContext is a transitive dependency of ExternalUserResolver).
     public static async Task<ClaimPlayerResult> Handle(
         ClaimPlayer message, HermodContext db, IServiceProvider services)
     {
-        var authDb = services.GetRequiredService<AuthDbContext>();
-        var login = await authDb.ExternalLogins
-            .Include(e => e.User)
-            .FirstOrDefaultAsync(e => e.Provider == "Discord" && e.ProviderKey == message.DiscordId);
-        if (login is null)
+        var userResolver = services.GetRequiredService<IExternalUserResolver>();
+        var externalUser = await userResolver.ResolveAsync(message.Provider, message.ProviderKey);
+        if (externalUser is null)
             return new ClaimPlayerResult(ClaimPlayerStatus.NotRegistered, null, null);
 
-        var userId = UserId.From(login.UserId);
+        var userId = UserId.From(externalUser.UserId);
 
         var hasProfile = await db.UserProfiles.AnyAsync(p => p.Id == userId);
         if (!hasProfile)
@@ -29,23 +26,23 @@ public static class ClaimPlayerHandler
             db.UserProfiles.Add(new UserProfileEntity
             {
                 Id = userId,
-                DisplayName = login.User.DisplayName,
+                DisplayName = externalUser.DisplayName,
             });
         }
 
         var play = await db.Plays.FindAsync(PlayId.From(message.PlayId));
         if (play?.UploadedById == userId)
-            return new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null, login.UserId);
+            return new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null, externalUser.UserId);
 
         var hasPlayer = await db.PlayPlayers
             .AnyAsync(pp => pp.BgStatsPlayerUuid == message.BgStatsPlayerUuid);
         if (!hasPlayer)
-            return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, login.UserId);
+            return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, externalUser.UserId);
 
         var alreadyMapped = await db.PlayerMappings
             .AnyAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid && pm.MappedUserId == userId);
         if (alreadyMapped)
-            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null, login.UserId);
+            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null, externalUser.UserId);
 
         db.PlayerMappings.Add(new PlayerMappingEntity
         {
@@ -77,6 +74,6 @@ public static class ClaimPlayerHandler
             .Select(pp => pp.PlayerName)
             .FirstAsync();
 
-        return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, login.UserId);
+        return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, externalUser.UserId);
     }
 }

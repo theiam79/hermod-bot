@@ -1,4 +1,4 @@
-using Hermod.Api.Auth;
+using Hermod.Auth;
 using Hermod.Api.Handlers;
 using Hermod.Data;
 using Hermod.Data.Entities;
@@ -30,7 +30,7 @@ public class EnrollInGroupHandlerTests
     private static IServiceProvider BuildServices(AuthDbContext authDb)
     {
         var services = new ServiceCollection();
-        services.AddSingleton(authDb);
+        services.AddSingleton<IExternalUserResolver>(new ExternalUserResolver(authDb));
         return services.BuildServiceProvider();
     }
 
@@ -72,7 +72,7 @@ public class EnrollInGroupHandlerTests
         var (db, _, services, groupId, _) = await SetupRegisteredUser();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
     }
@@ -83,7 +83,7 @@ public class EnrollInGroupHandlerTests
         var (db, _, services, groupId, userId) = await SetupRegisteredUser();
 
         await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
         await db.SaveChangesAsync();
 
         var membership = await db.UserGroups.SingleAsync();
@@ -97,7 +97,7 @@ public class EnrollInGroupHandlerTests
         var (db, _, services, groupId, _) = await SetupRegisteredUser();
 
         await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
         await db.SaveChangesAsync();
 
         var membership = await db.UserGroups.SingleAsync();
@@ -118,7 +118,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.AlreadyMember);
     }
@@ -137,7 +137,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
 
         await Assert.That(db.UserGroups.Count()).IsEqualTo(1);
     }
@@ -153,7 +153,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("unknown-discord-id", groupId), db, BuildServices(authDb));
+            new EnrollInGroup("Discord", "unknown-discord-id", groupId), db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.NotRegistered);
     }
@@ -165,7 +165,7 @@ public class EnrollInGroupHandlerTests
         var authDb = CreateAuthDb();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", Guid.NewGuid()), db, BuildServices(authDb));
+            new EnrollInGroup("Discord", "123456789", Guid.NewGuid()), db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.GroupNotFound);
     }
@@ -176,7 +176,7 @@ public class EnrollInGroupHandlerTests
         var (db, _, services, groupId, userId) = await SetupRegisteredUser();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
         await Assert.That(result.UserId).IsEqualTo(userId);
@@ -196,7 +196,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("123456789", groupId), db, services);
+            new EnrollInGroup("Discord", "123456789", groupId), db, services);
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.AlreadyMember);
         await Assert.That(result.UserId).IsEqualTo(userId);
@@ -213,7 +213,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("unknown-discord-id", groupId), db, BuildServices(authDb));
+            new EnrollInGroup("Discord", "unknown-discord-id", groupId), db, BuildServices(authDb));
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.NotRegistered);
         await Assert.That(result.UserId).IsNull();
@@ -248,7 +248,7 @@ public class EnrollInGroupHandlerTests
         await authDb.SaveChangesAsync();
 
         var result = await EnrollInGroupHandler.Handle(
-            new EnrollInGroup("999888777", groupId), db, BuildServices(authDb));
+            new EnrollInGroup("Discord", "999888777", groupId), db, BuildServices(authDb));
         await db.SaveChangesAsync();
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
@@ -279,9 +279,9 @@ public class EnrollInGroupHandlerTests
         await authDb.SaveChangesAsync();
 
         var services = BuildServices(authDb);
-        var result1 = await EnrollInGroupHandler.Handle(new EnrollInGroup("111", groupId), db, services);
+        var result1 = await EnrollInGroupHandler.Handle(new EnrollInGroup("Discord", "111", groupId), db, services);
         await db.SaveChangesAsync();
-        var result2 = await EnrollInGroupHandler.Handle(new EnrollInGroup("222", groupId), db, services);
+        var result2 = await EnrollInGroupHandler.Handle(new EnrollInGroup("Discord", "222", groupId), db, services);
         await db.SaveChangesAsync();
 
         await Assert.That(result1.Status).IsEqualTo(EnrollmentStatus.Enrolled);

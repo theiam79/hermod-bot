@@ -40,7 +40,7 @@ builder.UseWolverine(opts =>
 
     opts.ListenToNatsSubject("hermod.bot");
 
-    opts.PublishMessage<RegisterGuild>()
+    opts.PublishMessage<RegisterCommunity>()
         .ToNatsSubject("hermod.api");
 
     opts.PublishMessage<UpdateGroupSharing>()

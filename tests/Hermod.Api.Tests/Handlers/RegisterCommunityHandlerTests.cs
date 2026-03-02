@@ -7,7 +7,7 @@ using TUnit.Core;
 
 namespace Hermod.Api.Tests.Handlers;
 
-public class RegisterGuildHandlerTests
+public class RegisterCommunityHandlerTests
 {
     private static HermodContext CreateInMemoryDb()
     {
@@ -22,8 +22,8 @@ public class RegisterGuildHandlerTests
     {
         await using var db = CreateInMemoryDb();
 
-        var message = new RegisterGuild(123456789UL, "Test Server");
-        await RegisterGuildHandler.Handle(message, db);
+        var message = new RegisterCommunity("Discord", "123456789", "Test Server");
+        await RegisterCommunityHandler.Handle(message, db);
         await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(1);
@@ -36,8 +36,8 @@ public class RegisterGuildHandlerTests
     {
         await using var db = CreateInMemoryDb();
 
-        var message = new RegisterGuild(123456789UL, "Test Server");
-        await RegisterGuildHandler.Handle(message, db);
+        var message = new RegisterCommunity("Discord", "123456789", "Test Server");
+        await RegisterCommunityHandler.Handle(message, db);
         await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
@@ -49,34 +49,35 @@ public class RegisterGuildHandlerTests
     {
         await using var db = CreateInMemoryDb();
 
-        var message = new RegisterGuild(123456789UL, "Test Server");
-        var result = await RegisterGuildHandler.Handle(message, db);
+        var message = new RegisterCommunity("Discord", "123456789", "Test Server");
+        var result = await RegisterCommunityHandler.Handle(message, db);
         await db.SaveChangesAsync();
 
-        var expectedId = GroupIdFactory.ForDiscordGuild(123456789UL);
+        var expectedId = GroupIdFactory.ForCommunity("Discord", "123456789");
         await Assert.That(result.GroupId).IsEqualTo(expectedId);
     }
 
     [Test]
-    public async Task Handle_PassesThroughDiscordGuildId()
+    public async Task Handle_PassesThroughProviderAndPlatformId()
     {
         await using var db = CreateInMemoryDb();
 
-        var message = new RegisterGuild(987654321UL, "Another Server");
-        var result = await RegisterGuildHandler.Handle(message, db);
+        var message = new RegisterCommunity("Discord", "987654321", "Another Server");
+        var result = await RegisterCommunityHandler.Handle(message, db);
         await db.SaveChangesAsync();
 
-        await Assert.That(result.DiscordGuildId).IsEqualTo(987654321UL);
+        await Assert.That(result.Provider).IsEqualTo("Discord");
+        await Assert.That(result.PlatformId).IsEqualTo("987654321");
     }
 
     [Test]
-    public async Task Handle_SameGuildTwice_UpsertsOneGroup()
+    public async Task Handle_SameCommunityTwice_UpsertsOneGroup()
     {
         await using var db = CreateInMemoryDb();
 
-        await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Old Name"), db);
+        await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "123456789", "Old Name"), db);
         await db.SaveChangesAsync();
-        await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "New Name"), db);
+        await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "123456789", "New Name"), db);
         await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(1);
@@ -85,13 +86,13 @@ public class RegisterGuildHandlerTests
     }
 
     [Test]
-    public async Task Handle_SameGuildTwice_ReturnsSameGroupId()
+    public async Task Handle_SameCommunityTwice_ReturnsSameGroupId()
     {
         await using var db = CreateInMemoryDb();
 
-        var first = await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        var first = await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "123456789", "Server"), db);
         await db.SaveChangesAsync();
-        var second = await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        var second = await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "123456789", "Server"), db);
         await db.SaveChangesAsync();
 
         await Assert.That(first.GroupId).IsEqualTo(second.GroupId);
@@ -101,11 +102,11 @@ public class RegisterGuildHandlerTests
     public async Task Handle_ExistingGroupWithSharingDisabled_PreservesAllowSharing()
     {
         await using var db = CreateInMemoryDb();
-        var groupId = GroupId.From(GroupIdFactory.ForDiscordGuild(123456789UL));
+        var groupId = GroupId.From(GroupIdFactory.ForCommunity("Discord", "123456789"));
         db.Groups.Add(new GroupEntity { Id = groupId, Name = "Server", AllowSharing = false });
         await db.SaveChangesAsync();
 
-        await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "123456789", "Server"), db);
         await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
@@ -113,13 +114,13 @@ public class RegisterGuildHandlerTests
     }
 
     [Test]
-    public async Task Handle_DifferentGuilds_CreateDifferentGroups()
+    public async Task Handle_DifferentCommunities_CreateDifferentGroups()
     {
         await using var db = CreateInMemoryDb();
 
-        var first = await RegisterGuildHandler.Handle(new RegisterGuild(111UL, "Server A"), db);
+        var first = await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "111", "Server A"), db);
         await db.SaveChangesAsync();
-        var second = await RegisterGuildHandler.Handle(new RegisterGuild(222UL, "Server B"), db);
+        var second = await RegisterCommunityHandler.Handle(new RegisterCommunity("Discord", "222", "Server B"), db);
         await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(2);
