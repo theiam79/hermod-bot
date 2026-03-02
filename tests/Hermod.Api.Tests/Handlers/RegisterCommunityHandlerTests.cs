@@ -1,4 +1,4 @@
-using Hermod.Api.Handlers;
+using Hermod.Api.Features.Groups;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;

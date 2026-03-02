@@ -1,10 +1,12 @@
 using System.Security.Claims;
+using Hermod.Api.Auth;
 using Hermod.Data;
 using Hermod.Data.Entities;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Wolverine.Http;
 
-namespace Hermod.Api.Endpoints.Plays;
+namespace Hermod.Api.Features.Plays;
 
 public record PlaySummary(
     Guid Id,
@@ -21,17 +23,9 @@ public record PlaysResponse(
     int Page,
     int PageSize);
 
-public static class PlayEndpoints
+[Authorize]
+public static class ListPlays
 {
-    public static IResult? Before(ClaimsPrincipal user)
-    {
-        var userIdClaim = user.FindFirstValue("hermod:user_id");
-        if (userIdClaim is null || !Guid.TryParse(userIdClaim, out _))
-            return Results.Unauthorized();
-
-        return WolverineContinue.Result();
-    }
-
     [WolverineGet("/api/plays")]
     public static async Task<PlaysResponse> Get(
         ClaimsPrincipal user,
@@ -42,7 +36,7 @@ public static class PlayEndpoints
         if (page < 1) page = 1;
         if (pageSize is < 1 or > 100) pageSize = 20;
 
-        var userId = UserId.From(Guid.Parse(user.FindFirstValue("hermod:user_id")!));
+        var userId = UserId.From(user.GetUserId()!.Value);
 
         var query = db.Plays
             .Where(p => p.UploadedById == userId)

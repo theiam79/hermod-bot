@@ -82,7 +82,7 @@ builder.Services.AddAuthentication(options =>
         var loginService = context.HttpContext.RequestServices.GetRequiredService<ExternalLoginService>();
         var (userId, _) = await loginService.ProvisionOrUpdateAsync("Discord", discordId, displayName, avatarUrl);
 
-        context.Identity!.AddClaim(new Claim("hermod:user_id", userId.ToString()));
+        context.Identity!.AddClaim(new Claim(Hermod.Api.Auth.ClaimsPrincipalExtensions.UserIdClaimType, userId.ToString()));
         if (avatarUrl is not null)
             context.Identity.AddClaim(new Claim("urn:discord:avatar:url", avatarUrl));
     };

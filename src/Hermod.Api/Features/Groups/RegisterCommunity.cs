@@ -2,7 +2,7 @@ using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 
-namespace Hermod.Api.Handlers;
+namespace Hermod.Api.Features.Groups;
 
 public static class RegisterCommunityHandler
 {

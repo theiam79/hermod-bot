@@ -1,10 +1,9 @@
-using Hermod.Api.Messages;
 using Hermod.Data;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
 
-namespace Hermod.Api.Handlers;
+namespace Hermod.Api.Features.Plays;
 
 public static class SharePlayHandler
 {

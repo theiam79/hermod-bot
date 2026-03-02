@@ -1,10 +1,12 @@
-using Hermod.Api.Messages;
 using Hermod.BGStats;
+using Hermod.BGStats.Models;
 using Hermod.Data;
 using Microsoft.Extensions.Logging;
 using Wolverine;
 
-namespace Hermod.Api.Handlers;
+namespace Hermod.Api.Features.Plays;
+
+public record PlayExtracted(Play ParsedPlay, Guid? MePlayerUuid, Guid? UploadId, Guid UploadedById);
 
 public static class ExtractPlaysHandler
 {

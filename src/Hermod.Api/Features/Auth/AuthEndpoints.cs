@@ -1,9 +1,10 @@
 using System.Security.Claims;
+using Hermod.Api.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Wolverine.Http;
 
-namespace Hermod.Api.Endpoints.Auth;
+namespace Hermod.Api.Features.Auth;
 
 public static class AuthEndpoints
 {
@@ -20,7 +21,7 @@ public static class AuthEndpoints
         if (user.Identity?.IsAuthenticated != true)
             return Results.Unauthorized();
 
-        var userId = user.FindFirstValue("hermod:user_id");
+        var userId = user.FindFirstValue(ClaimsPrincipalExtensions.UserIdClaimType);
         var username = user.FindFirstValue(ClaimTypes.Name);
         var avatarUrl = user.FindFirstValue("urn:discord:avatar:url");
 

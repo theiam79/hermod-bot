@@ -1,5 +1,4 @@
-using Hermod.Api.Handlers;
-using Hermod.Api.Messages;
+using Hermod.Api.Features.Plays;
 using Hermod.BGStats.Models;
 using Hermod.Data;
 using Hermod.Data.Entities;
@@ -10,7 +9,7 @@ using TUnit.Core;
 
 namespace Hermod.Api.Tests.Handlers;
 
-public class PlayExtractedHandlerTests
+public class PersistPlayHandlerTests
 {
     private static HermodContext CreateInMemoryDb()
     {
@@ -47,7 +46,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        var result = await PersistPlayHandler.Handle(message, db, TimeProvider.System);
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Created);
         await Assert.That(result.UploadedById).IsEqualTo(userId);
@@ -62,7 +61,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.Plays.CountAsync();
@@ -83,7 +82,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await PersistPlayHandler.Handle(message, db, fakeTime);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.FirstAsync();
@@ -99,7 +98,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await PersistPlayHandler.Handle(message, db, fakeTime);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.FirstAsync();
@@ -136,7 +135,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        var result = await PersistPlayHandler.Handle(message, db, TimeProvider.System);
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Updated);
     }
@@ -170,7 +169,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        var result = await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         await Assert.That(result.PlayId).IsEqualTo(existingPlayId.Value);
@@ -204,7 +203,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await PersistPlayHandler.Handle(message, db, fakeTime);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.FirstAsync();
@@ -234,7 +233,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await PersistPlayHandler.Handle(message, db, fakeTime);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.FirstAsync();
@@ -263,7 +262,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid);
         var message = new PlayExtracted(play, null, null, user2);
 
-        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        var result = await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Created);
@@ -306,7 +305,7 @@ public class PlayExtractedHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayExtracted(play, null, null, userId);
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.Include(p => p.Players).FirstAsync();
@@ -322,7 +321,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var mapping = await db.PlayerMappings.SingleAsync();
@@ -339,7 +338,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.Include(p => p.Players).FirstAsync();
@@ -354,7 +353,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();
@@ -379,7 +378,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();
@@ -396,12 +395,12 @@ public class PlayExtractedHandlerTests
 
         var play1 = CreateTestPlay(playerUuid: mePlayerUuid);
         var message1 = new PlayExtracted(play1, mePlayerUuid, null, user1);
-        await PlayExtractedHandler.Handle(message1, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message1, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var play2 = CreateTestPlay(playerUuid: mePlayerUuid);
         var message2 = new PlayExtracted(play2, mePlayerUuid, null, user2);
-        await PlayExtractedHandler.Handle(message2, db, TimeProvider.System);
+        await PersistPlayHandler.Handle(message2, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();

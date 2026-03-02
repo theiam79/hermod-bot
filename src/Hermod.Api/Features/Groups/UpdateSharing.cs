@@ -1,9 +1,9 @@
 using Hermod.Data;
 using Hermod.Messages;
 
-namespace Hermod.Api.Handlers;
+namespace Hermod.Api.Features.Groups;
 
-public static class UpdateGroupSharingHandler
+public static class UpdateSharingHandler
 {
     public static async Task Handle(UpdateGroupSharing message, HermodContext db)
     {

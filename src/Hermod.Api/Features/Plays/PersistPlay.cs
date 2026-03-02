@@ -1,12 +1,13 @@
-using Hermod.Api.Messages;
 using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 
-namespace Hermod.Api.Handlers;
+namespace Hermod.Api.Features.Plays;
 
-public static class PlayExtractedHandler
+public record PlayPersisted(Guid PlayId, Guid UploadedById, PlayChangeType ChangeType);
+
+public static class PersistPlayHandler
 {
     public static async Task<PlayPersisted> Handle(PlayExtracted message, HermodContext db, TimeProvider timeProvider)
     {
