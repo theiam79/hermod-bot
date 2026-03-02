@@ -25,7 +25,7 @@ public static class SharePlayHandler
             .FirstOrDefaultAsync(p => p.Id == PlayId.From(message.PlayId));
 
         if (play is null)
-            return [];
+            throw new InvalidOperationException($"Play {message.PlayId} not found — may not be committed yet.");
 
         var snapshot = new PlaySnapshot(
             play.GameName,

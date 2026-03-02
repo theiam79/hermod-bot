@@ -300,6 +300,64 @@ public class ClaimPlayerHandlerTests
     }
 
     [Test]
+    public async Task Claim_RegisteredUser_CreatesProfileIfMissing()
+    {
+        var db = CreateHermodDb();
+        var authDb = CreateAuthDb();
+
+        var userId = Guid.NewGuid();
+        var discordId = "999888777";
+        var playerUuid = Guid.NewGuid().ToString();
+        var playId = Guid.NewGuid();
+
+        // No UserProfileEntity seeded
+        var playEntity = new PlayEntity
+        {
+            Id = PlayId.From(playId),
+            UploadedById = UserId.From(Guid.NewGuid()),
+            BgStatsPlayUuid = Guid.NewGuid().ToString(),
+            GameName = "Catan",
+            DatePlayed = DateTime.UtcNow,
+            CreatedAt = DateTime.UtcNow,
+        };
+        db.Plays.Add(playEntity);
+        db.PlayPlayers.Add(new PlayPlayerEntity
+        {
+            Id = PlayPlayerId.From(Guid.NewGuid()),
+            PlayId = PlayId.From(playId),
+            BgStatsPlayerUuid = playerUuid,
+            PlayerName = "Alice",
+            Score = "10",
+        });
+        await db.SaveChangesAsync();
+
+        authDb.Users.Add(new AuthUser
+        {
+            Id = userId,
+            DisplayName = "NewUser",
+            CreatedAt = DateTime.UtcNow,
+            LastLoginAt = DateTime.UtcNow,
+        });
+        authDb.ExternalLogins.Add(new ExternalLogin
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = "Discord",
+            ProviderKey = discordId,
+            CreatedAt = DateTime.UtcNow,
+        });
+        await authDb.SaveChangesAsync();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer(discordId, playerUuid, playId), db, BuildServices(authDb));
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
+
+        var profile = await db.UserProfiles.SingleAsync(p => p.Id == UserId.From(userId));
+        await Assert.That(profile.DisplayName).IsEqualTo("NewUser");
+    }
+
+    [Test]
     public async Task Claim_OnlyBackfillsNull_NoOverwrite()
     {
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();

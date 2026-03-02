@@ -15,7 +15,7 @@ public class GroupEndpointTests
     [Test]
     public async Task CreateGroup_ReturnsCreated()
     {
-        var client = Api.CreateAnonymousClient();
+        var client = Api.CreateAuthenticatedClient(Guid.NewGuid());
 
         var response = await client.PostAsJsonAsync("/api/groups", new { Name = "Test Group" });
 
@@ -30,7 +30,7 @@ public class GroupEndpointTests
     [Test]
     public async Task CreateAndGetGroup_RoundTrips()
     {
-        var client = Api.CreateAnonymousClient();
+        var client = Api.CreateAuthenticatedClient(Guid.NewGuid());
 
         var createResponse = await client.PostAsJsonAsync("/api/groups", new { Name = "Round Trip Group" });
         var created = await createResponse.Content.ReadFromJsonAsync<GroupResponse>();
@@ -43,6 +43,16 @@ public class GroupEndpointTests
         await Assert.That(fetched).IsNotNull();
         await Assert.That(fetched!.Name).IsEqualTo("Round Trip Group");
         await Assert.That(fetched.Id).IsEqualTo(created.Id);
+    }
+
+    [Test]
+    public async Task CreateGroup_Anonymous_ReturnsUnauthorized()
+    {
+        var client = Api.CreateAnonymousClient();
+
+        var response = await client.PostAsJsonAsync("/api/groups", new { Name = "Should Fail" });
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
     }
 
     [Test]

@@ -120,6 +120,8 @@ builder.Services.AddAuthentication(options =>
         }
 
         context.Identity!.AddClaim(new Claim("hermod:user_id", userId.ToString()));
+        if (avatarUrl is not null)
+            context.Identity.AddClaim(new Claim("urn:discord:avatar:url", avatarUrl));
     };
 });
 

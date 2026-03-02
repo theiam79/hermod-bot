@@ -191,6 +191,29 @@ public class SharePlayHandlerTests
     }
 
     [Test]
+    public async Task PlayNotFound_Throws()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var groupId = GroupId.From(Guid.NewGuid());
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(userId),
+            DisplayName = "Test User",
+        });
+        db.Groups.Add(new GroupEntity { Id = groupId, Name = "Sharing Group", AllowSharing = true });
+        db.UserGroups.Add(new UserGroupEntity { UserId = UserId.From(userId), GroupId = groupId });
+        await db.SaveChangesAsync();
+
+        // No play seeded — handler should throw instead of silently returning empty
+        var message = new PlayPersisted(Guid.NewGuid(), userId, PlayChangeType.Created);
+        await Assert.That(async () => await SharePlayHandler.Handle(message, db))
+            .ThrowsException()
+            .WithMessageContaining("not found");
+    }
+
+    [Test]
     public async Task Snapshot_IncludesBgStatsPlayerUuid()
     {
         await using var db = CreateInMemoryDb();

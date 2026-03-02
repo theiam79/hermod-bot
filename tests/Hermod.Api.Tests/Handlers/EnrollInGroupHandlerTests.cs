@@ -218,6 +218,43 @@ public class EnrollInGroupHandlerTests
     }
 
     [Test]
+    public async Task Handle_RegisteredUser_CreatesProfileIfMissing()
+    {
+        var db = CreateHermodDb();
+        var authDb = CreateAuthDb();
+
+        var groupId = Guid.NewGuid();
+        db.Groups.Add(new GroupEntity { Id = GroupId.From(groupId), Name = "Test Guild" });
+        await db.SaveChangesAsync();
+
+        var userId = Guid.NewGuid();
+        authDb.Users.Add(new AuthUser
+        {
+            Id = userId,
+            DisplayName = "NewUser",
+            CreatedAt = DateTime.UtcNow,
+            LastLoginAt = DateTime.UtcNow,
+        });
+        authDb.ExternalLogins.Add(new ExternalLogin
+        {
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Provider = "Discord",
+            ProviderKey = "999888777",
+            CreatedAt = DateTime.UtcNow,
+        });
+        await authDb.SaveChangesAsync();
+
+        var result = await EnrollInGroupHandler.Handle(
+            new EnrollInGroup("999888777", groupId), db, BuildServices(authDb));
+
+        await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
+
+        var profile = await db.UserProfiles.SingleAsync(p => p.Id == UserId.From(userId));
+        await Assert.That(profile.DisplayName).IsEqualTo("NewUser");
+    }
+
+    [Test]
     public async Task Handle_MultipleUsersCanEnrollInSameGroup()
     {
         var db = CreateHermodDb();

@@ -21,11 +21,23 @@ public static class EnrollInGroupHandler
 
         var authDb = services.GetRequiredService<AuthDbContext>();
         var login = await authDb.ExternalLogins
+            .Include(e => e.User)
             .FirstOrDefaultAsync(e => e.Provider == "Discord" && e.ProviderKey == message.DiscordId);
         if (login is null)
             return new EnrollmentResult(EnrollmentStatus.NotRegistered);
 
         var userId = UserId.From(login.UserId);
+
+        var hasProfile = await db.UserProfiles.AnyAsync(p => p.Id == userId);
+        if (!hasProfile)
+        {
+            db.UserProfiles.Add(new UserProfileEntity
+            {
+                Id = userId,
+                DisplayName = login.User.DisplayName,
+            });
+        }
+
         var existing = await db.UserGroups
             .AnyAsync(ug => ug.UserId == userId && ug.GroupId == groupId);
         if (existing)
