@@ -4,8 +4,8 @@ using Hermod.Bot.Data;
 using Hermod.Bot.Embeds;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using NetCord;
 using NetCord.Gateway;
 using NetCord.Rest;
 
@@ -16,7 +16,7 @@ public static class SharePlayToGroupHandler
     public static async Task Handle(
         SharePlayToGroup message,
         BotDbContext db,
-        GatewayClient gateway,
+        IServiceProvider services,
         RestClient rest,
         ILogger logger)
     {
@@ -35,17 +35,26 @@ public static class SharePlayToGroupHandler
             return;
         }
 
-        if (!gateway.Cache.Guilds.TryGetValue(mapping.DiscordGuildId, out var guild))
+        // GatewayClient is only registered in production mode (not Testing).
+        // When available, validate guild/channel existence via the gateway cache.
+        var gateway = services.GetService<GatewayClient>();
+        string? guildName = null;
+        if (gateway is not null)
         {
-            logger.LogWarning("Discord guild {GuildId} not found in cache", mapping.DiscordGuildId);
-            return;
-        }
+            if (!gateway.Cache.Guilds.TryGetValue(mapping.DiscordGuildId, out var guild))
+            {
+                logger.LogWarning("Discord guild {GuildId} not found in cache", mapping.DiscordGuildId);
+                return;
+            }
 
-        if (!guild.Channels.TryGetValue(mapping.PostChannelId.Value, out _))
-        {
-            logger.LogWarning("Text channel {ChannelId} not found in guild {GuildId}",
-                mapping.PostChannelId.Value, mapping.DiscordGuildId);
-            return;
+            if (!guild.Channels.TryGetValue(mapping.PostChannelId.Value, out _))
+            {
+                logger.LogWarning("Text channel {ChannelId} not found in guild {GuildId}",
+                    mapping.PostChannelId.Value, mapping.DiscordGuildId);
+                return;
+            }
+
+            guildName = guild.Name;
         }
 
         var channelId = mapping.PostChannelId.Value;
@@ -66,7 +75,7 @@ public static class SharePlayToGroupHandler
                 existingPost.UpdatedAt = DateTime.UtcNow;
                 await db.SaveChangesAsync();
                 logger.LogInformation("Updated play post for play {PlayId} in guild {GuildName}",
-                    message.PlayId, guild.Name);
+                    message.PlayId, guildName ?? mapping.DiscordGuildId.ToString());
                 return;
             }
             catch (RestException ex) when (ex.StatusCode == HttpStatusCode.NotFound)
@@ -108,7 +117,8 @@ public static class SharePlayToGroupHandler
 
             await db.SaveChangesAsync();
             logger.LogInformation("Posted play {PlayId} ({GameName}) to channel {ChannelId} in {GuildName}",
-                message.PlayId, message.Snapshot.GameName, channelId, guild.Name);
+                message.PlayId, message.Snapshot.GameName, channelId,
+                guildName ?? mapping.DiscordGuildId.ToString());
         }
         catch (RestException ex)
         {

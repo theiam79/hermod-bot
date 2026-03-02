@@ -26,12 +26,24 @@ var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
     .WaitFor(authDb)
     .WaitFor(nats);
 
+var discordApiBaseUrl = builder.Configuration["Testing:DiscordApiBaseUrl"];
+
 var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
     .WithReference(botDb)
     .WithReference(nats)
     .WithEnvironment("Discord__Token", discordToken)
     .WaitFor(botDb)
     .WaitFor(nats);
+
+// Testing:DiscordApiBaseUrl is only set by the E2E test fixture → implies Testing mode.
+// Propagate Testing:Enabled flag to child resources via env var (Testing__Enabled maps
+// to Configuration["Testing:Enabled"] in the child processes).
+if (discordApiBaseUrl is { Length: > 0 })
+{
+    bot.WithEnvironment("Discord__ApiBaseUrl", discordApiBaseUrl);
+    api.WithEnvironment("Testing__Enabled", "true");
+    bot.WithEnvironment("Testing__Enabled", "true");
+}
 
 if (skipBot)
 {
