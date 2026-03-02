@@ -21,6 +21,8 @@ builder.Services.AddOpenApi();
 
 builder.Services.AddHttpClient();
 
+builder.Services.AddSingleton(TimeProvider.System);
+
 var hermodConnectionString = builder.Configuration.GetConnectionString("hermod-db")
     ?? throw new InvalidOperationException("ConnectionStrings:hermod-db is not configured.");
 

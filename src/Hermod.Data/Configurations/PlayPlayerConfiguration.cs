@@ -23,13 +23,17 @@ public class PlayPlayerConfiguration : IEntityTypeConfiguration<PlayPlayerEntity
         builder.Property(pp => pp.Role).HasMaxLength(500);
         builder.Property(pp => pp.Team).HasMaxLength(100);
 
+        builder.HasIndex(pp => pp.BgStatsPlayerUuid);
+
         builder.HasOne(pp => pp.Play)
             .WithMany(p => p.Players)
-            .HasForeignKey(pp => pp.PlayId);
+            .HasForeignKey(pp => pp.PlayId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         builder.HasOne(pp => pp.MappedUser)
             .WithMany()
             .HasForeignKey(pp => pp.MappedUserId)
-            .IsRequired(false);
+            .IsRequired(false)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

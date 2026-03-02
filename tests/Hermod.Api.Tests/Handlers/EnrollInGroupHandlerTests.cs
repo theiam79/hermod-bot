@@ -84,6 +84,7 @@ public class EnrollInGroupHandlerTests
 
         await EnrollInGroupHandler.Handle(
             new EnrollInGroup("123456789", groupId), db, services);
+        await db.SaveChangesAsync();
 
         var membership = await db.UserGroups.SingleAsync();
         await Assert.That(membership.UserId).IsEqualTo(UserId.From(userId));
@@ -97,6 +98,7 @@ public class EnrollInGroupHandlerTests
 
         await EnrollInGroupHandler.Handle(
             new EnrollInGroup("123456789", groupId), db, services);
+        await db.SaveChangesAsync();
 
         var membership = await db.UserGroups.SingleAsync();
         await Assert.That(membership.Role).IsEqualTo(GroupRole.Member);
@@ -247,6 +249,7 @@ public class EnrollInGroupHandlerTests
 
         var result = await EnrollInGroupHandler.Handle(
             new EnrollInGroup("999888777", groupId), db, BuildServices(authDb));
+        await db.SaveChangesAsync();
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
 
@@ -277,7 +280,9 @@ public class EnrollInGroupHandlerTests
 
         var services = BuildServices(authDb);
         var result1 = await EnrollInGroupHandler.Handle(new EnrollInGroup("111", groupId), db, services);
+        await db.SaveChangesAsync();
         var result2 = await EnrollInGroupHandler.Handle(new EnrollInGroup("222", groupId), db, services);
+        await db.SaveChangesAsync();
 
         await Assert.That(result1.Status).IsEqualTo(EnrollmentStatus.Enrolled);
         await Assert.That(result2.Status).IsEqualTo(EnrollmentStatus.Enrolled);

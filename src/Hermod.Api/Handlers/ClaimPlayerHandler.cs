@@ -77,8 +77,6 @@ public static class ClaimPlayerHandler
             .Select(pp => pp.PlayerName)
             .FirstAsync();
 
-        await db.SaveChangesAsync();
-
         return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, login.UserId);
     }
 }

@@ -5,6 +5,7 @@ using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Time.Testing;
 using TUnit.Core;
 
 namespace Hermod.Api.Tests.Handlers;
@@ -46,7 +47,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db);
+        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Created);
         await Assert.That(result.UploadedById).IsEqualTo(userId);
@@ -61,7 +62,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.Plays.CountAsync();
@@ -71,6 +72,38 @@ public class PlayExtractedHandlerTests
         await Assert.That(entity.GameName).IsEqualTo("Catan");
         await Assert.That(entity.Players).Count().IsEqualTo(1);
         await Assert.That(entity.UploadedById).IsEqualTo(UserId.From(userId));
+    }
+
+    [Test]
+    public async Task Create_NewPlay_SetsCreatedAtFromTimeProvider()
+    {
+        await using var db = CreateInMemoryDb();
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2025, 3, 1, 12, 0, 0, TimeSpan.Zero));
+        var userId = Guid.NewGuid();
+        var play = CreateTestPlay();
+        var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
+
+        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await db.SaveChangesAsync();
+
+        var entity = await db.Plays.FirstAsync();
+        await Assert.That(entity.CreatedAt).IsEqualTo(new DateTime(2025, 3, 1, 12, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Test]
+    public async Task Create_NewPlay_UpdatedAtIsNull()
+    {
+        await using var db = CreateInMemoryDb();
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2025, 3, 1, 12, 0, 0, TimeSpan.Zero));
+        var userId = Guid.NewGuid();
+        var play = CreateTestPlay();
+        var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
+
+        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await db.SaveChangesAsync();
+
+        var entity = await db.Plays.FirstAsync();
+        await Assert.That(entity.UpdatedAt).IsNull();
     }
 
     [Test]
@@ -103,7 +136,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db);
+        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Updated);
     }
@@ -137,7 +170,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid, "New Name");
         var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
 
-        var result = await PlayExtractedHandler.Handle(message, db);
+        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         await Assert.That(result.PlayId).IsEqualTo(existingPlayId.Value);
@@ -146,6 +179,66 @@ public class PlayExtractedHandlerTests
         await Assert.That(entity.GameName).IsEqualTo("New Name");
         await Assert.That(entity.Players).Count().IsEqualTo(1);
         await Assert.That(entity.Players[0].PlayerName).IsEqualTo("Alice");
+    }
+
+    [Test]
+    public async Task Update_ExistingPlay_SetsUpdatedAt()
+    {
+        await using var db = CreateInMemoryDb();
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2025, 3, 1, 12, 0, 0, TimeSpan.Zero));
+        var userId = Guid.NewGuid();
+        var playUuid = Guid.NewGuid();
+        var originalCreatedAt = new DateTime(2025, 2, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        db.Plays.Add(new PlayEntity
+        {
+            Id = PlayId.From(Guid.NewGuid()),
+            UploadedById = UserId.From(userId),
+            BgStatsPlayUuid = playUuid.ToString(),
+            GameName = "Old Name",
+            DatePlayed = DateTime.UtcNow,
+            CreatedAt = originalCreatedAt,
+        });
+        await db.SaveChangesAsync();
+
+        var play = CreateTestPlay(playUuid, "New Name");
+        var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
+
+        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await db.SaveChangesAsync();
+
+        var entity = await db.Plays.FirstAsync();
+        await Assert.That(entity.UpdatedAt).IsEqualTo(new DateTime(2025, 3, 1, 12, 0, 0, DateTimeKind.Utc));
+    }
+
+    [Test]
+    public async Task Update_ExistingPlay_PreservesCreatedAt()
+    {
+        await using var db = CreateInMemoryDb();
+        var fakeTime = new FakeTimeProvider(new DateTimeOffset(2025, 3, 1, 12, 0, 0, TimeSpan.Zero));
+        var userId = Guid.NewGuid();
+        var playUuid = Guid.NewGuid();
+        var originalCreatedAt = new DateTime(2025, 2, 1, 10, 0, 0, DateTimeKind.Utc);
+
+        db.Plays.Add(new PlayEntity
+        {
+            Id = PlayId.From(Guid.NewGuid()),
+            UploadedById = UserId.From(userId),
+            BgStatsPlayUuid = playUuid.ToString(),
+            GameName = "Old Name",
+            DatePlayed = DateTime.UtcNow,
+            CreatedAt = originalCreatedAt,
+        });
+        await db.SaveChangesAsync();
+
+        var play = CreateTestPlay(playUuid, "New Name");
+        var message = new PlayExtracted(play, null, Guid.NewGuid(), userId);
+
+        await PlayExtractedHandler.Handle(message, db, fakeTime);
+        await db.SaveChangesAsync();
+
+        var entity = await db.Plays.FirstAsync();
+        await Assert.That(entity.CreatedAt).IsEqualTo(originalCreatedAt);
     }
 
     [Test]
@@ -170,7 +263,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playUuid);
         var message = new PlayExtracted(play, null, null, user2);
 
-        var result = await PlayExtractedHandler.Handle(message, db);
+        var result = await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         await Assert.That(result.ChangeType).IsEqualTo(PlayChangeType.Created);
@@ -213,7 +306,7 @@ public class PlayExtractedHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayExtracted(play, null, null, userId);
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.Include(p => p.Players).FirstAsync();
@@ -229,7 +322,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var mapping = await db.PlayerMappings.SingleAsync();
@@ -246,7 +339,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var entity = await db.Plays.Include(p => p.Players).FirstAsync();
@@ -261,7 +354,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay();
         var message = new PlayExtracted(play, null, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();
@@ -286,7 +379,7 @@ public class PlayExtractedHandlerTests
         var play = CreateTestPlay(playerUuid: mePlayerUuid);
         var message = new PlayExtracted(play, mePlayerUuid, null, userId);
 
-        await PlayExtractedHandler.Handle(message, db);
+        await PlayExtractedHandler.Handle(message, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();
@@ -303,12 +396,12 @@ public class PlayExtractedHandlerTests
 
         var play1 = CreateTestPlay(playerUuid: mePlayerUuid);
         var message1 = new PlayExtracted(play1, mePlayerUuid, null, user1);
-        await PlayExtractedHandler.Handle(message1, db);
+        await PlayExtractedHandler.Handle(message1, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var play2 = CreateTestPlay(playerUuid: mePlayerUuid);
         var message2 = new PlayExtracted(play2, mePlayerUuid, null, user2);
-        await PlayExtractedHandler.Handle(message2, db);
+        await PlayExtractedHandler.Handle(message2, db, TimeProvider.System);
         await db.SaveChangesAsync();
 
         var count = await db.PlayerMappings.CountAsync();

@@ -8,7 +8,7 @@ namespace Hermod.Api.Handlers;
 
 public static class PlayExtractedHandler
 {
-    public static async Task<PlayPersisted> Handle(PlayExtracted message, HermodContext db)
+    public static async Task<PlayPersisted> Handle(PlayExtracted message, HermodContext db, TimeProvider timeProvider)
     {
         var play = message.ParsedPlay;
         var bgStatsUuid = play.Uuid.ToString();
@@ -39,7 +39,7 @@ public static class PlayExtractedHandler
                 LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name,
                 Rounds = play.Rounds > 0 ? play.Rounds : null,
                 Comments = play.Comments,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = timeProvider.GetUtcNow().UtcDateTime,
                 Players = CreatePlayers(play, playId),
             };
 
@@ -58,6 +58,7 @@ public static class PlayExtractedHandler
             entity.LocationName = string.IsNullOrEmpty(play.Location.Name) ? null : play.Location.Name;
             entity.Rounds = play.Rounds > 0 ? play.Rounds : null;
             entity.Comments = play.Comments;
+            entity.UpdatedAt = timeProvider.GetUtcNow().UtcDateTime;
 
             // Replace players
             db.PlayPlayers.RemoveRange(entity.Players);

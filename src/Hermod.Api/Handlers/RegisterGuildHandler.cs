@@ -26,8 +26,6 @@ public static class RegisterGuildHandler
             db.Groups.Add(group);
         }
 
-        await db.SaveChangesAsync();
-
         return new GuildRegistered(group.Id.Value, message.DiscordGuildId);
     }
 }

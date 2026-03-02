@@ -105,6 +105,7 @@ public class ClaimPlayerHandlerTests
 
         await ClaimPlayerHandler.Handle(
             new ClaimPlayer(discordId, playerUuid, playId), db, services);
+        await db.SaveChangesAsync();
 
         var mapping = await db.PlayerMappings.SingleAsync();
         await Assert.That(mapping.BgStatsPlayerUuid).IsEqualTo(playerUuid);
@@ -118,6 +119,7 @@ public class ClaimPlayerHandlerTests
 
         await ClaimPlayerHandler.Handle(
             new ClaimPlayer(discordId, playerUuid, playId), db, services);
+        await db.SaveChangesAsync();
 
         var player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(playId));
         await Assert.That(player.MappedUserId).IsEqualTo(UserId.From(userId));
@@ -150,6 +152,7 @@ public class ClaimPlayerHandlerTests
 
         await ClaimPlayerHandler.Handle(
             new ClaimPlayer(discordId, playerUuid, playId), db, services);
+        await db.SaveChangesAsync();
 
         var play2Player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(play2Id));
         await Assert.That(play2Player.MappedUserId).IsEqualTo(UserId.From(userId));
@@ -350,6 +353,7 @@ public class ClaimPlayerHandlerTests
 
         var result = await ClaimPlayerHandler.Handle(
             new ClaimPlayer(discordId, playerUuid, playId), db, BuildServices(authDb));
+        await db.SaveChangesAsync();
 
         await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.Claimed);
 
@@ -386,6 +390,7 @@ public class ClaimPlayerHandlerTests
 
         await ClaimPlayerHandler.Handle(
             new ClaimPlayer(discordId, playerUuid, playId), db, services);
+        await db.SaveChangesAsync();
 
         var play2Player = await db.PlayPlayers.SingleAsync(pp => pp.PlayId == PlayId.From(play2Id));
         await Assert.That(play2Player.MappedUserId).IsEqualTo(otherUserId);

@@ -24,6 +24,7 @@ public class PlayConfiguration : IEntityTypeConfiguration<PlayEntity>
 
         builder.HasIndex(p => new { p.BgStatsPlayUuid, p.UploadedById }).IsUnique();
         builder.HasIndex(p => p.DatePlayed);
+        builder.HasIndex(p => p.UploadedById);
 
         builder.Property(p => p.UploadId)
             .HasConversion(id => id.HasValue ? (Guid?)id.Value.Value : null, v => v.HasValue ? UploadId.From(v.Value) : (UploadId?)null);

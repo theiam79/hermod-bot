@@ -9,9 +9,3 @@ public class UserGroupEntity
     public UserProfileEntity User { get; set; } = null!;
     public GroupEntity Group { get; set; } = null!;
 }
-
-public enum GroupRole
-{
-    Member,
-    Admin,
-}

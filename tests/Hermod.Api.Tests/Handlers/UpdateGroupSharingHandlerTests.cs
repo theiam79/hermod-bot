@@ -26,6 +26,7 @@ public class UpdateGroupSharingHandlerTests
         await db.SaveChangesAsync();
 
         await UpdateGroupSharingHandler.Handle(new UpdateGroupSharing(groupId.Value, false), db);
+        await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
         await Assert.That(group.AllowSharing).IsFalse();
@@ -40,6 +41,7 @@ public class UpdateGroupSharingHandlerTests
         await db.SaveChangesAsync();
 
         await UpdateGroupSharingHandler.Handle(new UpdateGroupSharing(groupId.Value, true), db);
+        await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
         await Assert.That(group.AllowSharing).IsTrue();

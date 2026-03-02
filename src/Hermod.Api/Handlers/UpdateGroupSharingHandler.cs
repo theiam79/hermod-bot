@@ -12,6 +12,5 @@ public static class UpdateGroupSharingHandler
             return;
 
         group.AllowSharing = message.AllowSharing;
-        await db.SaveChangesAsync();
     }
 }

@@ -24,6 +24,7 @@ public class RegisterGuildHandlerTests
 
         var message = new RegisterGuild(123456789UL, "Test Server");
         await RegisterGuildHandler.Handle(message, db);
+        await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(1);
         var group = await db.Groups.SingleAsync();
@@ -37,6 +38,7 @@ public class RegisterGuildHandlerTests
 
         var message = new RegisterGuild(123456789UL, "Test Server");
         await RegisterGuildHandler.Handle(message, db);
+        await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
         await Assert.That(group.AllowSharing).IsFalse();
@@ -49,6 +51,7 @@ public class RegisterGuildHandlerTests
 
         var message = new RegisterGuild(123456789UL, "Test Server");
         var result = await RegisterGuildHandler.Handle(message, db);
+        await db.SaveChangesAsync();
 
         var expectedId = GroupIdFactory.ForDiscordGuild(123456789UL);
         await Assert.That(result.GroupId).IsEqualTo(expectedId);
@@ -61,6 +64,7 @@ public class RegisterGuildHandlerTests
 
         var message = new RegisterGuild(987654321UL, "Another Server");
         var result = await RegisterGuildHandler.Handle(message, db);
+        await db.SaveChangesAsync();
 
         await Assert.That(result.DiscordGuildId).IsEqualTo(987654321UL);
     }
@@ -71,7 +75,9 @@ public class RegisterGuildHandlerTests
         await using var db = CreateInMemoryDb();
 
         await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Old Name"), db);
+        await db.SaveChangesAsync();
         await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "New Name"), db);
+        await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(1);
         var group = await db.Groups.SingleAsync();
@@ -84,7 +90,9 @@ public class RegisterGuildHandlerTests
         await using var db = CreateInMemoryDb();
 
         var first = await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        await db.SaveChangesAsync();
         var second = await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        await db.SaveChangesAsync();
 
         await Assert.That(first.GroupId).IsEqualTo(second.GroupId);
     }
@@ -98,6 +106,7 @@ public class RegisterGuildHandlerTests
         await db.SaveChangesAsync();
 
         await RegisterGuildHandler.Handle(new RegisterGuild(123456789UL, "Server"), db);
+        await db.SaveChangesAsync();
 
         var group = await db.Groups.SingleAsync();
         await Assert.That(group.AllowSharing).IsFalse();
@@ -109,7 +118,9 @@ public class RegisterGuildHandlerTests
         await using var db = CreateInMemoryDb();
 
         var first = await RegisterGuildHandler.Handle(new RegisterGuild(111UL, "Server A"), db);
+        await db.SaveChangesAsync();
         var second = await RegisterGuildHandler.Handle(new RegisterGuild(222UL, "Server B"), db);
+        await db.SaveChangesAsync();
 
         await Assert.That(db.Groups.Count()).IsEqualTo(2);
         await Assert.That(first.GroupId).IsNotEqualTo(second.GroupId);

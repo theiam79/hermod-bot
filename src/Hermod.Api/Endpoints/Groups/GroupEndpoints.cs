@@ -63,7 +63,6 @@ public static class GroupEndpoints
             GroupId = gid,
             Role = GroupRole.Member,
         });
-        await db.SaveChangesAsync();
 
         return Results.Created($"/api/groups/{groupId}/membership", null);
     }

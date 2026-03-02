@@ -25,7 +25,6 @@ public static class CreateGroup
             Name = request.Name,
         };
         db.Groups.Add(group);
-        await db.SaveChangesAsync();
 
         return Results.Created($"/api/groups/{group.Id.Value}",
             new GroupResponse(group.Id.Value, group.Name, group.AllowSharing));

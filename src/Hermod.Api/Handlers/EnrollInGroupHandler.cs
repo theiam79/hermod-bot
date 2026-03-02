@@ -49,8 +49,6 @@ public static class EnrollInGroupHandler
             GroupId = groupId,
             Role = GroupRole.Member,
         });
-        await db.SaveChangesAsync();
-
         return new EnrollmentResult(EnrollmentStatus.Enrolled, login.UserId);
     }
 }
