@@ -88,8 +88,7 @@ public class DistributeFileHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
-        var (continuation, entity) = await DistributeFileHandler.LoadAsync(message, db);
-        var result = await DistributeFileHandler.Handle(message, entity!, db);
+        var result = await DistributeFileHandler.Handle(message, db);
 
         var distributed = result.OfType<DistributePlayFile>().ToList();
         await Assert.That(distributed).Count().IsEqualTo(1);
@@ -104,8 +103,7 @@ public class DistributeFileHandlerTests
         var (db, upload, mePlayerUuid, _, uploaderId) = await SetupUploadWithTwoPlayers();
 
         var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
-        var (_, entity) = await DistributeFileHandler.LoadAsync(message, db);
-        var result = await DistributeFileHandler.Handle(message, entity!, db);
+        var result = await DistributeFileHandler.Handle(message, db);
 
         await Assert.That(result).Count().IsEqualTo(0);
     }
@@ -131,22 +129,21 @@ public class DistributeFileHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
-        var (_, entity) = await DistributeFileHandler.LoadAsync(message, db);
-        var result = await DistributeFileHandler.Handle(message, entity!, db);
+        var result = await DistributeFileHandler.Handle(message, db);
 
         await Assert.That(result).Count().IsEqualTo(0);
     }
 
     [Test]
-    public async Task UploadNotFound_Stops()
+    public async Task UploadNotFound_Throws()
     {
         var db = CreateInMemoryDb();
 
         var message = new PlayFileUploaded(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid());
-        var (continuation, entity) = await DistributeFileHandler.LoadAsync(message, db);
 
-        await Assert.That(continuation).IsEqualTo(Wolverine.HandlerContinuation.Stop);
-        await Assert.That(entity).IsNull();
+        await Assert.That(async () => await DistributeFileHandler.Handle(message, db))
+            .ThrowsException()
+            .WithMessageContaining("not found");
     }
 
     [Test]
@@ -191,8 +188,7 @@ public class DistributeFileHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayFileUploaded(uploadId.Value, mePlayerUuid, uploaderId);
-        var (_, entity) = await DistributeFileHandler.LoadAsync(message, db);
-        var result = await DistributeFileHandler.Handle(message, entity!, db);
+        var result = await DistributeFileHandler.Handle(message, db);
 
         await Assert.That(result.OfType<DistributePlayFile>()).Count().IsEqualTo(1);
     }
@@ -219,8 +215,7 @@ public class DistributeFileHandlerTests
         await db.SaveChangesAsync();
 
         var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
-        var (_, entity) = await DistributeFileHandler.LoadAsync(message, db);
-        var result = await DistributeFileHandler.Handle(message, entity!, db);
+        var result = await DistributeFileHandler.Handle(message, db);
 
         // Me player should be excluded even though mapped and subscribed
         var distributed = result.OfType<DistributePlayFile>().ToList();
