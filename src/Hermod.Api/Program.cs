@@ -76,7 +76,6 @@ builder.Services.AddAuthentication(options =>
             : null;
 
         var authDb = context.HttpContext.RequestServices.GetRequiredService<AuthDbContext>();
-        var hermodDb = context.HttpContext.RequestServices.GetRequiredService<HermodContext>();
 
         var login = await authDb.ExternalLogins
             .Include(e => e.User)
@@ -106,14 +105,7 @@ builder.Services.AddAuthentication(options =>
                 CreatedAt = DateTime.UtcNow,
             });
 
-            hermodDb.UserProfiles.Add(new UserProfileEntity
-            {
-                Id = UserId.From(userId),
-                DisplayName = displayName,
-            });
-
             await authDb.SaveChangesAsync();
-            await hermodDb.SaveChangesAsync();
         }
         else
         {
