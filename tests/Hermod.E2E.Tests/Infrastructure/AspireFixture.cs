@@ -8,6 +8,7 @@ using Npgsql;
 using TUnit.Core;
 using TUnit.Core.Interfaces;
 using WireMock.Server;
+using WireMock.Settings;
 
 namespace Hermod.E2E.Tests.Infrastructure;
 
@@ -26,8 +27,13 @@ public class AspireFixture : IAsyncInitializer, IAsyncDisposable
 
     public async Task InitializeAsync()
     {
-        // 1. Start WireMock before AppHost so the URL is available
-        DiscordApi = WireMockServer.Start();
+        // 1. Start WireMock on HTTPS before AppHost so the URL is available.
+        //    NetCord hardcodes "https://" so WireMock must speak TLS.
+        //    Uses the dotnet dev certificate (run `dotnet dev-certs https` if missing).
+        DiscordApi = WireMockServer.Start(new WireMockServerSettings
+        {
+            UseSSL = true,
+        });
         WireMockHelper.ConfigureDiscordStubs(DiscordApi);
 
         // Parse WireMock URL into host:port for NetCord's Hostname config

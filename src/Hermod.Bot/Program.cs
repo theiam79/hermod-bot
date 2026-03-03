@@ -1,5 +1,4 @@
 using Hermod.Bot.Data;
-using Hermod.Bot.Infrastructure;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using NetCord;
@@ -38,14 +37,14 @@ if (!isTesting)
 }
 else
 {
-    // TESTING: Standalone RestClient pointed at WireMock (no gateway, no slash commands)
+    // TESTING: Standalone RestClient pointed at WireMock (no gateway, no slash commands).
+    // WireMock listens on HTTPS so NetCord's default HTTPS behavior works directly.
     var discordApiHost = builder.Configuration["Discord:ApiBaseUrl"]
         ?? throw new InvalidOperationException("Discord:ApiBaseUrl is required in Testing mode.");
     var token = new BotToken(builder.Configuration["Discord:Token"] ?? "test-token");
     builder.Services.AddSingleton(new RestClient(token, new RestClientConfiguration
     {
         Hostname = discordApiHost,
-        RequestHandler = new HttpDowngradeHandler(),
     }));
 }
 
