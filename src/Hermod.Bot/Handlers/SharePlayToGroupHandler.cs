@@ -99,6 +99,12 @@ public static class SharePlayToGroupHandler
                 logger.LogWarning("Original message {MessageId} was deleted, posting new",
                     existingPost.DiscordMessageId);
             }
+            catch (RestException ex) when (ex.StatusCode == HttpStatusCode.Forbidden)
+            {
+                logger.LogWarning("No permission to edit message {MessageId} in channel {ChannelId}",
+                    existingPost.DiscordMessageId, channelId);
+                return;
+            }
         }
 
         try

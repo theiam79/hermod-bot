@@ -3,6 +3,7 @@ using Hermod.Data;
 using Hermod.Data.Entities;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
+using Wolverine;
 
 namespace Hermod.Api.Features.Groups;
 
@@ -76,6 +77,11 @@ public static class ClaimPlayerHandler
             .Where(pp => pp.BgStatsPlayerUuid == message.BgStatsPlayerUuid)
             .Select(pp => pp.PlayerName)
             .FirstAsync();
+
+        // Notify downstream (re-render embeds) — optional in unit tests where IMessageBus isn't registered
+        var bus = services.GetService<IMessageBus>();
+        if (bus is not null)
+            await bus.PublishAsync(new ClaimChanged(message.BgStatsPlayerUuid, externalUser.UserId));
 
         return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, externalUser.UserId);
     }

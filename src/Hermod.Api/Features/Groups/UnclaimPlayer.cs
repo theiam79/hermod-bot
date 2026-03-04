@@ -63,7 +63,10 @@ public static class UnclaimPlayerEndpoint
             new UnclaimPlayer(userId, bgStatsPlayerUuid), db);
 
         if (result.Event is not null)
+        {
             await bus.PublishAsync(result.Event);
+            await bus.PublishAsync(new ClaimChanged(bgStatsPlayerUuid, null));
+        }
 
         return result.Status switch
         {
