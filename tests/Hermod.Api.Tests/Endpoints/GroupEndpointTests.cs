@@ -142,5 +142,72 @@ public class GroupEndpointTests
         await Assert.That(groups!.Any(g => g.Id == groupId)).IsTrue();
     }
 
+    [Test]
+    public async Task LeaveGroup_Member_ReturnsNoContent()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        // Join first
+        await client.PutAsync($"/api/groups/{groupId}/membership", null);
+        // Then leave
+        var response = await client.DeleteAsync($"/api/groups/{groupId}/membership");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
+    }
+
+    [Test]
+    public async Task LeaveGroup_AlreadyNotMember_ReturnsNoContent()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        // Never joined — still 204 (idempotent)
+        var response = await client.DeleteAsync($"/api/groups/{groupId}/membership");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NoContent);
+    }
+
+    [Test]
+    public async Task LeaveGroup_NonexistentGroup_ReturnsNotFound()
+    {
+        var userId = Guid.NewGuid();
+        await using var scope = Api.CreateDbScope();
+        var db = scope.ServiceProvider.GetRequiredService<HermodContext>();
+        db.UserProfiles.Add(new UserProfileEntity { Id = UserId.From(userId), DisplayName = "LeaveUser" });
+        await db.SaveChangesAsync();
+
+        var client = Api.CreateAuthenticatedClient(userId);
+        var response = await client.DeleteAsync($"/api/groups/{Guid.NewGuid()}/membership");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+    }
+
+    [Test]
+    public async Task LeaveGroup_Anonymous_ReturnsUnauthorized()
+    {
+        var client = Api.CreateAnonymousClient();
+
+        var response = await client.DeleteAsync($"/api/groups/{Guid.NewGuid()}/membership");
+
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.Unauthorized);
+    }
+
+    [Test]
+    public async Task LeaveGroup_UserDisappearsFromGroupList()
+    {
+        var (userId, groupId) = await SeedUserAndGroup();
+        var client = Api.CreateAuthenticatedClient(userId);
+
+        await client.PutAsync($"/api/groups/{groupId}/membership", null);
+        await client.DeleteAsync($"/api/groups/{groupId}/membership");
+
+        var listResponse = await client.GetAsync("/api/groups");
+        var groups = await listResponse.Content.ReadFromJsonAsync<GroupResponse[]>();
+
+        await Assert.That(groups).IsNotNull();
+        await Assert.That(groups!.Any(g => g.Id == groupId)).IsFalse();
+    }
+
     private record GroupResponse(Guid Id, string Name, bool AllowSharing);
 }

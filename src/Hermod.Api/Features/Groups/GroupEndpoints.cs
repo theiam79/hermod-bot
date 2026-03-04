@@ -77,4 +77,23 @@ public static class GroupEndpoints
 
         return Results.Created($"/api/groups/{groupId}/membership", null);
     }
+
+    [Authorize]
+    [WolverineDelete("/api/groups/{groupId:guid}/membership")]
+    public static async Task<IResult> LeaveGroup(Guid groupId, ClaimsPrincipal user, [FromServices] HermodContext db)
+    {
+        var gid = GroupId.From(groupId);
+        var group = await db.Groups.FindAsync(gid);
+        if (group is null)
+            return Results.NotFound();
+
+        var userId = UserId.From(user.GetUserId()!.Value);
+        var membership = await db.UserGroups
+            .FirstOrDefaultAsync(ug => ug.UserId == userId && ug.GroupId == gid);
+        if (membership is null)
+            return Results.NoContent();
+
+        db.UserGroups.Remove(membership);
+        return Results.NoContent();
+    }
 }
