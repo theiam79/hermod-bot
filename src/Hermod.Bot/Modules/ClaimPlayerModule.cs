@@ -114,7 +114,7 @@ public class ClaimPlayerSelectionModule(IServiceScopeFactory scopeFactory) : Com
         var response = result.Status switch
         {
             ClaimPlayerStatus.Claimed => $"You've been linked to **{result.PlayerName}**! Future plays will recognize you automatically.",
-            ClaimPlayerStatus.AlreadyClaimed => "You've already claimed this player.",
+            ClaimPlayerStatus.AlreadyClaimed => $"This player is already claimed by **{result.ClaimantDisplayName}**.",
             ClaimPlayerStatus.IsUploader => "You uploaded this play — your player was linked automatically.",
             ClaimPlayerStatus.NotRegistered => "You need to register first. Use `/enroll` to get started.",
             ClaimPlayerStatus.PlayerNotFound => "That player wasn't found in the system.",
