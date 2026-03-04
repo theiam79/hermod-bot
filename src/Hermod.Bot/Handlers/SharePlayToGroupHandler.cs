@@ -58,7 +58,23 @@ public static class SharePlayToGroupHandler
         }
 
         var channelId = mapping.PostChannelId.Value;
-        var embed = PlayEmbedBuilder.Build(message.Snapshot);
+
+        // Resolve MappedUserId → Discord user IDs for mention rendering
+        var mappedUserIds = message.Snapshot.Players
+            .Where(p => p.MappedUserId.HasValue)
+            .Select(p => p.MappedUserId!.Value)
+            .Distinct()
+            .ToList();
+
+        IReadOnlyDictionary<Guid, ulong>? discordUserIds = null;
+        if (mappedUserIds.Count > 0)
+        {
+            discordUserIds = await db.DiscordUserMappings
+                .Where(m => mappedUserIds.Contains(m.HermodUserId))
+                .ToDictionaryAsync(m => m.HermodUserId, m => m.DiscordUserId);
+        }
+
+        var embed = PlayEmbedBuilder.Build(message.Snapshot, discordUserIds);
 
         var existingPost = await db.PlayPosts
             .FirstOrDefaultAsync(p => p.GroupId == message.GroupId && p.PlayId == message.PlayId);

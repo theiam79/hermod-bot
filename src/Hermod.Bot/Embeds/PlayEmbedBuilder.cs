@@ -9,7 +9,7 @@ public static class PlayEmbedBuilder
 {
     private static readonly Color PlayColor = new(0x57F287); // Discord green
 
-    public static EmbedProperties Build(PlaySnapshot snapshot)
+    public static EmbedProperties Build(PlaySnapshot snapshot, IReadOnlyDictionary<Guid, ulong>? discordUserIds = null)
     {
         return new EmbedProperties
         {
@@ -18,7 +18,7 @@ public static class PlayEmbedBuilder
             Thumbnail = snapshot.GameThumbnailUrl is { } url ? new EmbedThumbnailProperties(url) : null,
             Timestamp = snapshot.DatePlayed,
             Color = PlayColor,
-            Fields = BuildPlayerFields(snapshot).ToArray(),
+            Fields = BuildPlayerFields(snapshot, discordUserIds).ToArray(),
             Footer = new EmbedFooterProperties { Text = BuildFooter(snapshot) },
         };
     }
@@ -66,13 +66,29 @@ public static class PlayEmbedBuilder
         };
     }
 
-    private static IEnumerable<EmbedFieldProperties> BuildPlayerFields(PlaySnapshot snapshot)
+    private static IEnumerable<EmbedFieldProperties> BuildPlayerFields(
+        PlaySnapshot snapshot, IReadOnlyDictionary<Guid, ulong>? discordUserIds)
     {
         var hasTeams = snapshot.Players.Any(p => !string.IsNullOrEmpty(p.Team));
-        return hasTeams ? BuildTeamFields(snapshot.Players) : BuildIndividualFields(snapshot.Players);
+        return hasTeams
+            ? BuildTeamFields(snapshot.Players, discordUserIds)
+            : BuildIndividualFields(snapshot.Players, discordUserIds);
     }
 
-    private static IEnumerable<EmbedFieldProperties> BuildTeamFields(List<PlayerSnapshot> players)
+    private static string FormatPlayerName(PlayerSnapshot player, IReadOnlyDictionary<Guid, ulong>? discordUserIds)
+    {
+        if (player.MappedUserId is { } userId
+            && discordUserIds is not null
+            && discordUserIds.TryGetValue(userId, out var discordId))
+        {
+            return $"<@{discordId}>";
+        }
+
+        return player.PlayerName;
+    }
+
+    private static IEnumerable<EmbedFieldProperties> BuildTeamFields(
+        List<PlayerSnapshot> players, IReadOnlyDictionary<Guid, ulong>? discordUserIds)
     {
         var teams = players.GroupBy(p => p.Team ?? "").OrderBy(g => g.Key);
 
@@ -88,7 +104,7 @@ public static class PlayEmbedBuilder
             var sb = new StringBuilder();
             foreach (var player in team)
             {
-                sb.Append(player.PlayerName);
+                sb.Append(FormatPlayerName(player, discordUserIds));
                 AppendScore(sb, player);
                 sb.AppendLine();
                 if (!string.IsNullOrEmpty(player.Role))
@@ -104,13 +120,14 @@ public static class PlayEmbedBuilder
         }
     }
 
-    private static IEnumerable<EmbedFieldProperties> BuildIndividualFields(List<PlayerSnapshot> players)
+    private static IEnumerable<EmbedFieldProperties> BuildIndividualFields(
+        List<PlayerSnapshot> players, IReadOnlyDictionary<Guid, ulong>? discordUserIds)
     {
         var sb = new StringBuilder();
 
         foreach (var player in players)
         {
-            sb.Append(player.PlayerName);
+            sb.Append(FormatPlayerName(player, discordUserIds));
             AppendScore(sb, player);
             if (player.Winner) sb.Append(" 🏆");
             sb.AppendLine();
