@@ -1,0 +1,24 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.1.1">
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.Nats" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.DevTunnels" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.Yarp" Version="13.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Hermod.Api\Hermod.Api.csproj" />
+    <ProjectReference Include="..\Hermod.Bot\Hermod.Bot.csproj" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <UserSecretsId>6ca85b63-2cd3-4100-892e-ea1a69e6a6e2</UserSecretsId>
+  </PropertyGroup>
+
+</Project>

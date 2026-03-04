@@ -1,0 +1,11 @@
+namespace Hermod.Data.Entities;
+
+public class UserGroupEntity
+{
+    public UserId UserId { get; set; }
+    public GroupId GroupId { get; set; }
+    public GroupRole Role { get; set; } = GroupRole.Member;
+
+    public UserProfileEntity User { get; set; } = null!;
+    public GroupEntity Group { get; set; } = null!;
+}

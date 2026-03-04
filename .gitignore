@@ -31,6 +31,8 @@ bld/
 [Oo]bj/
 [Ll]og/
 [Ll]ogs/
+# Windows-style build artifacts with literal backslash in name (Linux filesystem artifact)
+*\\*
 
 # Visual Studio 2015/2017 cache/options directory
 .vs/
@@ -455,3 +457,9 @@ $RECYCLE.BIN/
 *.db
 *.db-shm
 *.db-wal
+sample-play-files/
+docs/handover.md
+src/Hermod.Web/.svelte-kit/
+src/Hermod.Web/build/
+.claude/*
+!.claude/skills/

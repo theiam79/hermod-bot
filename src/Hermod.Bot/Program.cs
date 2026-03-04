@@ -1,76 +1,68 @@
-using Serilog;
-using Serilog.Configuration;
-using Discord.Addons.Hosting;
-using Serilog.Enrichers.Sensitive;
-using Serilog.Exceptions.Core;
-using Serilog.Exceptions.EntityFrameworkCore.Destructurers;
-using Serilog.Exceptions;
-using Discord.WebSocket;
-using Discord;
-using Hermod.Bot;
-using Hermod.Core.Extensions;
-using Hermod.Data.Context;
+using Hermod.Bot.Data;
+using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
-using Hermod.Bot.Options;
+using NetCord;
+using NetCord.Gateway;
+using NetCord.Hosting.Gateway;
+using NetCord.Hosting.Services;
+using NetCord.Hosting.Services.ApplicationCommands;
+using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Services.ApplicationCommands;
+using NetCord.Services.ComponentInteractions;
+using Wolverine;
+using Wolverine.Nats;
 
-IHost host = Host.CreateDefaultBuilder(args)
-    .ConfigureServices(services =>
-    {
-        services.AddHostedService<CommandHandler>();
-        services.AddHostedService<InteractionHandler>();
-        services.AddHostedService<GuildHandler>();
-        services.AddMemoryCache();
+var builder = Host.CreateApplicationBuilder(args);
+builder.AddServiceDefaults();
 
-        services
-            .AddOptions<BotOptions>();
+var natsUrl = builder.Configuration.GetConnectionString("nats")
+    ?? throw new InvalidOperationException("ConnectionStrings:nats is not configured.");
 
-        services.AddHermod();
-        //services.AddDbContext<HermodContext>(o => o.UseInMemoryDatabase("temp-testing"));
-        services.AddDbContext<HermodContext>(o => o.UseSqlite("FileName=./data/Hermod.db"));
-    })
-    .UseSerilog((context, services, config) =>
-    {
-        config
-            .ReadFrom.Configuration(context.Configuration)
-            .ReadFrom.Services(services)
-            .Enrich.FromLogContext()
-            .Enrich.WithEnvironmentName()
-            //.Enrich.WithSensitiveDataMasking()
-            .Enrich.WithExceptionDetails(new DestructuringOptionsBuilder()
-                .WithDefaultDestructurers()
-                .WithDestructurers(new[] { new DbUpdateExceptionDestructurer() }));
-    })
-    .ConfigureDiscordHost((context, config) =>
-    {
-        config.SocketConfig = new DiscordSocketConfig
-        {
-            LogLevel = LogSeverity.Verbose,
-            AlwaysDownloadUsers = true,
-            MessageCacheSize = 200,
-            UseInteractionSnowflakeDate = false
-        };
+builder.AddNpgsqlDbContext<BotDbContext>("bot-db");
 
-        var token = context.Configuration["DiscordToken"];
-        config.Token = token;
-    })
-    .UseCommandService((context, config) =>
+// NetCord: reads token from Discord:Token in IConfiguration automatically
+builder.Services
+    .AddDiscordGateway(options =>
     {
-        config.LogLevel = LogSeverity.Verbose;
-        config.DefaultRunMode = Discord.Commands.RunMode.Async;
-        config.CaseSensitiveCommands = false;
+        options.Intents = GatewayIntents.Guilds;
     })
-    .UseInteractionService((context, config) =>
-    {
-        config.LogLevel = LogSeverity.Verbose;
-        config.DefaultRunMode = Discord.Interactions.RunMode.Async;
-    })
-    .Build();
+    .AddApplicationCommands<SlashCommandInteraction, SlashCommandContext>()
+    .AddApplicationCommands<MessageCommandInteraction, MessageCommandContext>()
+    .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+    .AddGatewayHandlers(typeof(Program).Assembly);
 
+builder.UseWolverine(opts =>
+{
+    opts.Discovery.IncludeAssembly(typeof(Program).Assembly);
+
+    opts.UseNats(natsUrl)
+        .AutoProvision();
+
+    opts.ListenToNatsSubject("hermod.bot");
+
+    opts.PublishMessage<RegisterCommunity>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<UpdateGroupSharing>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<EnrollInGroup>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<ClaimPlayer>()
+        .ToNatsSubject("hermod.api");
+});
+
+var host = builder.Build();
+
+// Apply Bot migrations
 using (var scope = host.Services.CreateScope())
 {
-    System.IO.Directory.CreateDirectory("./data");
-    var context = scope.ServiceProvider.GetRequiredService<HermodContext>();
-    await context.Database.EnsureCreatedAsync();
+    var botDb = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+    await botDb.Database.MigrateAsync();
 }
 
+host.AddModules(typeof(Program).Assembly);
 await host.RunAsync();
+
+public partial class Program;

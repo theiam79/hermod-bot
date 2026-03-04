@@ -1,0 +1,51 @@
+{
+	"name": "Hermod",
+	"short_name": "Hermod",
+	"description": "Share your board game plays from BGStats",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#1d2323",
+	"theme_color": "#1d2323",
+	"icons": [
+		{
+			"src": "/icons/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/icons/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		},
+		{
+			"src": "/icons/icon-maskable-192.png",
+			"sizes": "192x192",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon-maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/icons/icon-192.svg",
+			"sizes": "any",
+			"type": "image/svg+xml"
+		}
+	],
+	"share_target": {
+		"action": "/upload",
+		"method": "POST",
+		"enctype": "multipart/form-data",
+		"params": {
+			"files": [
+				{
+					"name": "file",
+					"accept": [".bgsplay", "application/octet-stream"]
+				}
+			]
+		}
+	}
+}

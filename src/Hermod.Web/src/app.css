@@ -1,0 +1,99 @@
+:root {
+	--color-bg: #1d2323;
+	--color-surface: #263030;
+	--color-surface-alt: #1a2828;
+	--color-primary: #f3b81d;
+	--color-text: #eee;
+	--color-text-muted: #aaa;
+	--color-border: #3a4444;
+	--color-success: #4caf50;
+	--color-error: #f44336;
+	--radius: 8px;
+	--max-width: 800px;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+body {
+	font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+	background: var(--color-bg);
+	color: var(--color-text);
+	line-height: 1.6;
+	min-height: 100vh;
+	overflow-wrap: break-word;
+}
+
+a {
+	color: var(--color-primary);
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+button {
+	cursor: pointer;
+	border: none;
+	border-radius: var(--radius);
+	padding: 0.6em 1.2em;
+	font-size: 1rem;
+	font-family: inherit;
+	transition: opacity 0.2s;
+}
+
+button:hover {
+	opacity: 0.9;
+}
+
+button:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+.btn-primary,
+a.btn-primary {
+	background: var(--color-primary);
+	color: #1d2323;
+	font-weight: 600;
+}
+
+.btn-secondary {
+	background: var(--color-surface-alt);
+	color: var(--color-text);
+}
+
+.container {
+	max-width: var(--max-width);
+	margin: 0 auto;
+	padding: 1rem;
+}
+
+.card {
+	background: var(--color-surface);
+	border-radius: var(--radius);
+	padding: 1.5rem;
+	border: 1px solid var(--color-border);
+}
+
+.alert {
+	padding: 0.75rem 1rem;
+	border-radius: var(--radius);
+	margin-bottom: 1rem;
+}
+
+.alert-success {
+	background: color-mix(in srgb, var(--color-success) 20%, transparent);
+	border: 1px solid var(--color-success);
+}
+
+.alert-error {
+	background: color-mix(in srgb, var(--color-error) 20%, transparent);
+	border: 1px solid var(--color-error);
+}

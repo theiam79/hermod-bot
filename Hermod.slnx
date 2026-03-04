@@ -1,0 +1,16 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Hermod.AppHost/Hermod.AppHost.csproj" />
+    <Project Path="src/Hermod.Messages/Hermod.Messages.csproj" />
+    <Project Path="src/Hermod.ServiceDefaults/Hermod.ServiceDefaults.csproj" />
+    <Project Path="src/Hermod.BGStats/Hermod.BGStats.csproj" />
+    <Project Path="src/Hermod.Data/Hermod.Data.csproj" />
+    <Project Path="src/Hermod.Api/Hermod.Api.csproj" />
+    <Project Path="src/Hermod.Auth/Hermod.Auth.csproj" />
+    <Project Path="src/Hermod.Bot/Hermod.Bot.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Hermod.BGStats.Tests/Hermod.BGStats.Tests.csproj" />
+    <Project Path="tests/Hermod.Api.Tests/Hermod.Api.Tests.csproj" />
+  </Folder>
+</Solution>
