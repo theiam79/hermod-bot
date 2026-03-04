@@ -23,6 +23,20 @@ public static class PlayEmbedBuilder
         };
     }
 
+    /// <summary>
+    /// Builds a "Claim a player" button wrapped in an ActionRow when unclaimed players exist.
+    /// Returns null when all players are already claimed.
+    /// </summary>
+    public static ActionRowProperties? BuildClaimButton(PlaySnapshot snapshot, Guid playId)
+    {
+        var hasUnclaimedPlayers = snapshot.Players.Any(p => p.MappedUserId is null);
+        if (!hasUnclaimedPlayers)
+            return null;
+
+        var button = new ButtonProperties($"claim-player-btn:{playId}", "Claim a player", ButtonStyle.Secondary);
+        return new ActionRowProperties([button]);
+    }
+
     private static string BuildDescription(PlaySnapshot snapshot)
     {
         var items = new List<string>();

@@ -75,6 +75,8 @@ public static class SharePlayToGroupHandler
         }
 
         var embed = PlayEmbedBuilder.Build(message.Snapshot, discordUserIds);
+        var claimButton = PlayEmbedBuilder.BuildClaimButton(message.Snapshot, message.PlayId);
+        var components = claimButton is not null ? new IMessageComponentProperties[] { claimButton } : null;
 
         var existingPost = await db.PlayPosts
             .FirstOrDefaultAsync(p => p.GroupId == message.GroupId && p.PlayId == message.PlayId);
@@ -86,6 +88,7 @@ public static class SharePlayToGroupHandler
                 await rest.ModifyMessageAsync(channelId, existingPost.DiscordMessageId, m =>
                 {
                     m.Embeds = [embed];
+                    m.Components = components;
                 });
                 existingPost.PlayersJson = JsonSerializer.Serialize(message.Snapshot.Players);
                 existingPost.UpdatedAt = DateTime.UtcNow;
@@ -112,6 +115,7 @@ public static class SharePlayToGroupHandler
             var sentMessage = await rest.SendMessageAsync(channelId, new MessageProperties
             {
                 Embeds = [embed],
+                Components = components,
             });
 
             var playersJson = JsonSerializer.Serialize(message.Snapshot.Players);

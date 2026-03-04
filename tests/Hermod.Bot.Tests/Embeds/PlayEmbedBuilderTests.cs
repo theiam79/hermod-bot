@@ -1,11 +1,15 @@
 using Hermod.Bot.Embeds;
 using Hermod.Messages;
+using NetCord;
+using NetCord.Rest;
 using TUnit.Core;
 
 namespace Hermod.Bot.Tests.Embeds;
 
 public class PlayEmbedBuilderTests
 {
+    private static readonly Guid TestPlayId = Guid.NewGuid();
+
     private static PlaySnapshot CreateSnapshot(List<PlayerSnapshot>? players = null)
     {
         players ??=
@@ -106,5 +110,35 @@ public class PlayEmbedBuilderTests
         await Assert.That(allFieldValues).Contains($"<@{discordId}>");
         await Assert.That(allFieldValues).Contains("Bob");
         await Assert.That(allFieldValues).DoesNotContain("Alice");
+    }
+
+    [Test]
+    public async Task BuildClaimButton_WithUnclaimedPlayers_ReturnsButton()
+    {
+        var snapshot = CreateSnapshot([
+            new PlayerSnapshot("uuid-1", "Alice", "10", null, true, 1, null, null, null),
+            new PlayerSnapshot("uuid-2", "Bob", "8", null, false, 2, null, null, Guid.NewGuid()),
+        ]);
+
+        var row = PlayEmbedBuilder.BuildClaimButton(snapshot, TestPlayId);
+
+        await Assert.That(row).IsNotNull();
+        var button = row!.Components.OfType<ButtonProperties>().Single();
+        await Assert.That(button.CustomId).IsEqualTo($"claim-player-btn:{TestPlayId}");
+        await Assert.That(button.Style).IsEqualTo(ButtonStyle.Secondary);
+        await Assert.That(button.Label).IsEqualTo("Claim a player");
+    }
+
+    [Test]
+    public async Task BuildClaimButton_AllPlayersClaimed_ReturnsNull()
+    {
+        var snapshot = CreateSnapshot([
+            new PlayerSnapshot("uuid-1", "Alice", "10", null, true, 1, null, null, Guid.NewGuid()),
+            new PlayerSnapshot("uuid-2", "Bob", "8", null, false, 2, null, null, Guid.NewGuid()),
+        ]);
+
+        var row = PlayEmbedBuilder.BuildClaimButton(snapshot, TestPlayId);
+
+        await Assert.That(row).IsNull();
     }
 }
