@@ -33,6 +33,7 @@ if (!isTesting)
         .AddApplicationCommands<SlashCommandInteraction, SlashCommandContext>()
         .AddApplicationCommands<MessageCommandInteraction, MessageCommandContext>()
         .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+        .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>()
         .AddGatewayHandlers(typeof(Program).Assembly);
 }
 else
@@ -70,6 +71,12 @@ builder.UseWolverine(opts =>
         .ToNatsSubject("hermod.api");
 
     opts.PublishMessage<LeaveGroup>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<GetUserClaims>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<UnclaimPlayer>()
         .ToNatsSubject("hermod.api");
 });
 
