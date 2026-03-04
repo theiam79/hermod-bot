@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fetchUser, fetchPlays, fetchGroups, uploadPlayFile, login } from '$lib/api';
+import { fetchUser, fetchPlays, fetchGroups, uploadPlayFile, login, fetchProfile, updateProfile } from '$lib/api';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -89,6 +89,69 @@ describe('uploadPlayFile', () => {
 		const result = await uploadPlayFile(file);
 		expect(result.ok).toBe(false);
 		if (!result.ok) expect(result.error).toContain('File exceeds maximum size');
+	});
+});
+
+describe('fetchProfile', () => {
+	it('returns null on error', async () => {
+		mockFetch.mockResolvedValue({ ok: false, status: 404 });
+		const result = await fetchProfile();
+		expect(result).toBeNull();
+	});
+
+	it('returns profile on success', async () => {
+		const profile = {
+			userId: '123',
+			displayName: 'Test',
+			bggId: 42,
+			bggUsername: 'testbgg',
+			subscribeToPlays: true,
+			groups: [{ groupId: 'g1', name: 'Group 1' }]
+		};
+		mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(profile) });
+		const result = await fetchProfile();
+		expect(result).toEqual(profile);
+		expect(mockFetch).toHaveBeenCalledWith('/api/profile');
+	});
+});
+
+describe('updateProfile', () => {
+	it('returns profile on success', async () => {
+		const profile = {
+			userId: '123',
+			displayName: 'Updated',
+			bggId: null,
+			bggUsername: null,
+			subscribeToPlays: true,
+			groups: []
+		};
+		mockFetch.mockResolvedValue({ ok: true, json: () => Promise.resolve(profile) });
+		const result = await updateProfile({ displayName: 'Updated' });
+		expect(result.ok).toBe(true);
+		if (result.ok) expect(result.profile.displayName).toBe('Updated');
+		expect(mockFetch).toHaveBeenCalledWith('/api/profile', {
+			method: 'PUT',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ displayName: 'Updated' })
+		});
+	});
+
+	it('returns validation error on 400', async () => {
+		mockFetch.mockResolvedValue({
+			ok: false,
+			status: 400,
+			json: () => Promise.resolve({ errors: { DisplayName: ['Display name must be 200 characters or fewer.'] } })
+		});
+		const result = await updateProfile({ displayName: 'x'.repeat(201) });
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('200 characters');
+	});
+
+	it('returns generic error on other failures', async () => {
+		mockFetch.mockResolvedValue({ ok: false, status: 500, text: () => Promise.resolve('Server error') });
+		const result = await updateProfile({ displayName: 'Test' });
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.error).toContain('Server error');
 	});
 });
 
