@@ -39,10 +39,13 @@ public static class ClaimPlayerHandler
         if (!hasPlayer)
             return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, externalUser.UserId);
 
-        var alreadyMapped = await db.PlayerMappings
-            .AnyAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid && pm.MappedUserId == userId);
-        if (alreadyMapped)
-            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null, externalUser.UserId);
+        var existingMapping = await db.PlayerMappings
+            .Include(pm => pm.MappedUser)
+            .FirstOrDefaultAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid);
+        if (existingMapping is not null)
+            return new ClaimPlayerResult(
+                ClaimPlayerStatus.AlreadyClaimed, null, externalUser.UserId,
+                existingMapping.MappedUser.DisplayName);
 
         db.PlayerMappings.Add(new PlayerMappingEntity
         {

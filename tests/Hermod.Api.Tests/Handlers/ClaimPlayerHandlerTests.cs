@@ -161,14 +161,16 @@ public class ClaimPlayerHandlerTests
     [Test]
     public async Task Claim_AlreadyClaimed_ReturnsAlreadyClaimed()
     {
-        var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
+        var (db, services, _, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
-        // Pre-seed mapping
+        // Pre-seed mapping by a different user
+        var otherUserId = UserId.From(Guid.NewGuid());
+        db.UserProfiles.Add(new UserProfileEntity { Id = otherUserId, DisplayName = "OtherPlayer" });
         db.PlayerMappings.Add(new PlayerMappingEntity
         {
             Id = PlayerMappingId.From(Guid.NewGuid()),
             BgStatsPlayerUuid = playerUuid,
-            MappedUserId = UserId.From(userId),
+            MappedUserId = otherUserId,
         });
         await db.SaveChangesAsync();
 
@@ -273,11 +275,14 @@ public class ClaimPlayerHandlerTests
     {
         var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
 
+        // Pre-seed mapping by a different user
+        var otherUserId = UserId.From(Guid.NewGuid());
+        db.UserProfiles.Add(new UserProfileEntity { Id = otherUserId, DisplayName = "ClaimHolder" });
         db.PlayerMappings.Add(new PlayerMappingEntity
         {
             Id = PlayerMappingId.From(Guid.NewGuid()),
             BgStatsPlayerUuid = playerUuid,
-            MappedUserId = UserId.From(userId),
+            MappedUserId = otherUserId,
         });
         await db.SaveChangesAsync();
 
@@ -359,6 +364,50 @@ public class ClaimPlayerHandlerTests
 
         var profile = await db.UserProfiles.SingleAsync(p => p.Id == UserId.From(userId));
         await Assert.That(profile.DisplayName).IsEqualTo("NewUser");
+    }
+
+    [Test]
+    public async Task Claim_AlreadyClaimed_ReturnsClaimantDisplayName()
+    {
+        var (db, services, _, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
+
+        // Pre-seed mapping by a different user
+        var otherUserId = UserId.From(Guid.NewGuid());
+        db.UserProfiles.Add(new UserProfileEntity { Id = otherUserId, DisplayName = "ExistingClaimer" });
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = playerUuid,
+            MappedUserId = otherUserId,
+        });
+        await db.SaveChangesAsync();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.AlreadyClaimed);
+        await Assert.That(result.ClaimantDisplayName).IsEqualTo("ExistingClaimer");
+    }
+
+    [Test]
+    public async Task Claim_SameUserClaimsAgain_ReturnsAlreadyClaimed()
+    {
+        var (db, services, userId, discordId, playerUuid, playId) = await SetupRegisteredUserWithPlay();
+
+        // Pre-seed mapping by the same user
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = playerUuid,
+            MappedUserId = UserId.From(userId),
+        });
+        await db.SaveChangesAsync();
+
+        var result = await ClaimPlayerHandler.Handle(
+            new ClaimPlayer("Discord", discordId, playerUuid, playId), db, services);
+
+        await Assert.That(result.Status).IsEqualTo(ClaimPlayerStatus.AlreadyClaimed);
+        await Assert.That(result.ClaimantDisplayName).IsEqualTo("TestUser");
     }
 
     [Test]
