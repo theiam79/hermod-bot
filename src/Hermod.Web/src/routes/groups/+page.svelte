@@ -22,7 +22,7 @@
 	});
 
 	async function handleLeave(group: GroupSummary) {
-		if (!confirm(`Are you sure you want to leave **${group.name}**?`)) return;
+		if (!confirm(`Are you sure you want to leave ${group.name}?`)) return;
 		error = null;
 		leaving = group.id;
 		const result = await leaveGroup(group.id);
