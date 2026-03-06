@@ -7,14 +7,29 @@ var discordClientSecret = builder.AddParameter("discord-client-secret", secret: 
 var skipBot = builder.Configuration["SkipBot"] is "true" or "True";
 var useTunnel = builder.Configuration["UseTunnel"] is "true" or "True";
 
-var postgres = builder.AddPostgres("postgres")
-    .WithDataVolume()
-    .WithPgAdmin();
-var hermodDb = postgres.AddDatabase("hermod-db");
-var authDb = postgres.AddDatabase("auth-db");
-var botDb = postgres.AddDatabase("bot-db");
+IResourceBuilder<IResourceWithConnectionString> hermodDb;
+IResourceBuilder<IResourceWithConnectionString> authDb;
+IResourceBuilder<IResourceWithConnectionString> botDb;
+IResourceBuilder<IResourceWithConnectionString> nats;
 
-var nats = builder.AddNats("nats");
+if (builder.ExecutionContext.IsRunMode)
+{
+    var postgres = builder.AddPostgres("postgres")
+        .WithDataVolume()
+        .WithPgAdmin();
+    hermodDb = postgres.AddDatabase("hermod-db");
+    authDb = postgres.AddDatabase("auth-db");
+    botDb = postgres.AddDatabase("bot-db");
+
+    nats = builder.AddNats("nats");
+}
+else
+{
+    hermodDb = builder.AddConnectionString("hermod-db");
+    authDb = builder.AddConnectionString("auth-db");
+    botDb = builder.AddConnectionString("bot-db");
+    nats = builder.AddConnectionString("nats");
+}
 
 var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
     .WithReference(hermodDb)
