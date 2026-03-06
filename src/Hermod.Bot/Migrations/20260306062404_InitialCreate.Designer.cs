@@ -12,8 +12,8 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Bot.Migrations
 {
     [DbContext(typeof(BotDbContext))]
-    [Migration("20260225235729_AddDiscordUserMappings")]
-    partial class AddDiscordUserMappings
+    [Migration("20260306062404_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

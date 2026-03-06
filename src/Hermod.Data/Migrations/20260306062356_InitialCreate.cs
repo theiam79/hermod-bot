@@ -47,7 +47,9 @@ namespace Hermod.Data.Migrations
                     DisplayName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
                     BggId = table.Column<int>(type: "integer", nullable: true),
                     BggUsername = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: true),
-                    SubscribeToPlays = table.Column<bool>(type: "boolean", nullable: false)
+                    SubscribeToPlays = table.Column<bool>(type: "boolean", nullable: false),
+                    PostingEnabled = table.Column<bool>(type: "boolean", nullable: false),
+                    DistributionEnabled = table.Column<bool>(type: "boolean", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -71,6 +73,7 @@ namespace Hermod.Data.Migrations
                     Comments = table.Column<string>(type: "text", nullable: true),
                     ImageUrl = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     UploadId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
@@ -159,19 +162,25 @@ namespace Hermod.Data.Migrations
                         name: "FK_PlayPlayers_UserProfiles_MappedUserId",
                         column: x => x.MappedUserId,
                         principalTable: "UserProfiles",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_PlayerMappings_BgStatsPlayerUuid_MappedUserId",
+                name: "IX_PlayerMappings_BgStatsPlayerUuid",
                 table: "PlayerMappings",
-                columns: new[] { "BgStatsPlayerUuid", "MappedUserId" },
+                column: "BgStatsPlayerUuid",
                 unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlayerMappings_MappedUserId",
                 table: "PlayerMappings",
                 column: "MappedUserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PlayPlayers_BgStatsPlayerUuid",
+                table: "PlayPlayers",
+                column: "BgStatsPlayerUuid");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PlayPlayers_MappedUserId",
@@ -193,6 +202,11 @@ namespace Hermod.Data.Migrations
                 name: "IX_Plays_DatePlayed",
                 table: "Plays",
                 column: "DatePlayed");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Plays_UploadedById",
+                table: "Plays",
+                column: "UploadedById");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Plays_UploadId",
