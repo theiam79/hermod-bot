@@ -36,6 +36,7 @@
 				<a href="/upload" class:active={$page.url.pathname === '/upload'}>Upload</a>
 				<a href="/plays" class:active={$page.url.pathname === '/plays'}>Plays</a>
 				<a href="/groups" class:active={$page.url.pathname === '/groups'}>Groups</a>
+				<a href="/profile" class:active={$page.url.pathname === '/profile'}>Profile</a>
 				<button class="btn-secondary sign-out" onclick={() => logout()}>Sign out</button>
 			</div>
 		{:else if !$loading}
