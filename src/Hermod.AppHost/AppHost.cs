@@ -95,19 +95,15 @@ if (builder.ExecutionContext.IsRunMode)
 }
 else
 {
-    // Publish mode: gateway routes API traffic directly and serves static frontend files
+    // Publish mode: API serves static frontend files; gateway forwards everything
     var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
         .WithReference(api);
 
+    api.PublishWithContainerFiles(frontend, "wwwroot");
+
     var gateway = builder.AddYarp("hermod-gateway")
-        .WithConfiguration(yarp =>
-        {
-            yarp.AddRoute("api/{**catch-all}", api);
-            yarp.AddRoute("auth/{**catch-all}", api);
-            yarp.AddRoute("signin-discord", api);
-        })
+        .WithConfiguration(yarp => yarp.AddRoute("{**catch-all}", api))
         .WithExternalHttpEndpoints()
-        .PublishWithStaticFiles(frontend)
         .WithContainerRegistry(registry)
         .WithRemoteImageTag(registryTag);
 }

@@ -148,8 +148,12 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.UseStaticFiles();
+
 app.MapWolverineEndpoints(opts =>
     opts.ConfigureEndpoints(e => e.DisableAntiforgery()));
+
+app.MapFallbackToFile("index.html");
 
 // Test-only endpoint: issue a session cookie for a given UserId without Discord OAuth.
 // Always registered; guarded at request time by Testing:Enabled config flag so it
