@@ -25,16 +25,6 @@ public static class EnrollInGroupHandler
 
         var userId = UserId.From(externalUser.UserId);
 
-        var hasProfile = await db.UserProfiles.AnyAsync(p => p.Id == userId);
-        if (!hasProfile)
-        {
-            db.UserProfiles.Add(new UserProfileEntity
-            {
-                Id = userId,
-                DisplayName = externalUser.DisplayName,
-            });
-        }
-
         var existing = await db.UserGroups
             .AnyAsync(ug => ug.UserId == userId && ug.GroupId == groupId);
         if (existing)

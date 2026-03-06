@@ -6,6 +6,5 @@ public class UserGroupEntity
     public GroupId GroupId { get; set; }
     public GroupRole Role { get; set; } = GroupRole.Member;
 
-    public UserProfileEntity User { get; set; } = null!;
     public GroupEntity Group { get; set; } = null!;
 }

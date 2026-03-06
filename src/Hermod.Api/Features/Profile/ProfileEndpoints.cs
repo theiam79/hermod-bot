@@ -37,13 +37,14 @@ public static class ProfileEndpoints
     {
         var userId = UserId.From(user.GetUserId()!.Value);
 
-        var profile = await db.UserProfiles
-            .Include(p => p.UserGroups)
-                .ThenInclude(ug => ug.Group)
-            .FirstOrDefaultAsync(p => p.Id == userId);
-
+        var profile = await db.UserProfiles.FirstOrDefaultAsync(p => p.Id == userId);
         if (profile is null)
             return Results.NotFound();
+
+        var groups = await db.UserGroups
+            .Where(ug => ug.UserId == userId)
+            .Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name))
+            .ToListAsync();
 
         return Results.Ok(new ProfileResponse(
             profile.Id.Value,
@@ -53,7 +54,7 @@ public static class ProfileEndpoints
             profile.SubscribeToPlays,
             profile.PostingEnabled,
             profile.DistributionEnabled,
-            profile.UserGroups.Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name)).ToList()));
+            groups));
     }
 
     [Authorize]
@@ -100,21 +101,19 @@ public static class ProfileEndpoints
         if (request.DistributionEnabled is not null)
             profile.DistributionEnabled = request.DistributionEnabled.Value;
 
-        // Re-fetch with includes so response contains groups
-        await db.SaveChangesAsync();
-        var updated = await db.UserProfiles
-            .Include(p => p.UserGroups)
-                .ThenInclude(ug => ug.Group)
-            .FirstAsync(p => p.Id == userId);
+        var groups = await db.UserGroups
+            .Where(ug => ug.UserId == userId)
+            .Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name))
+            .ToListAsync();
 
         return Results.Ok(new ProfileResponse(
-            updated.Id.Value,
-            updated.DisplayName,
-            updated.BggId,
-            updated.BggUsername,
-            updated.SubscribeToPlays,
-            updated.PostingEnabled,
-            updated.DistributionEnabled,
-            updated.UserGroups.Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name)).ToList()));
+            profile.Id.Value,
+            profile.DisplayName,
+            profile.BggId,
+            profile.BggUsername,
+            profile.SubscribeToPlays,
+            profile.PostingEnabled,
+            profile.DistributionEnabled,
+            groups));
     }
 }
