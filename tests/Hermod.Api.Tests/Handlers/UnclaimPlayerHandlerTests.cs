@@ -120,10 +120,11 @@ public class UnclaimPlayerHandlerTests
         var (db, _, playerUuid, _) = await SetupUserWithClaim();
 
         var otherUserId = Guid.NewGuid();
-        var result = await UnclaimPlayerHandler.Handle(
+        var (result, claimChanged) = await UnclaimPlayerHandler.Handle(
             new UnclaimPlayer(otherUserId, playerUuid), db);
 
         await Assert.That(result.Status).IsEqualTo(UnclaimStatus.Forbidden);
+        await Assert.That(claimChanged).IsNull();
     }
 
     [Test]
@@ -131,46 +132,24 @@ public class UnclaimPlayerHandlerTests
     {
         var db = CreateDb();
 
-        var result = await UnclaimPlayerHandler.Handle(
+        var (result, claimChanged) = await UnclaimPlayerHandler.Handle(
             new UnclaimPlayer(Guid.NewGuid(), Guid.NewGuid().ToString()), db);
 
         await Assert.That(result.Status).IsEqualTo(UnclaimStatus.NotFound);
+        await Assert.That(claimChanged).IsNull();
     }
 
     [Test]
-    public async Task Unclaim_ReturnsClaimRemovedWithCorrectData()
+    public async Task Unclaim_Success_ReturnsClaimChangedCascade()
     {
-        var (db, userId, playerUuid, playId) = await SetupUserWithClaim();
+        var (db, userId, playerUuid, _) = await SetupUserWithClaim();
 
-        // Add a second play with the same player UUID, also claimed
-        var play2Id = Guid.NewGuid();
-        db.Plays.Add(new PlayEntity
-        {
-            Id = PlayId.From(play2Id),
-            UploadedById = UserId.From(Guid.NewGuid()),
-            BgStatsPlayUuid = Guid.NewGuid().ToString(),
-            GameName = "Wingspan",
-            DatePlayed = DateTime.UtcNow,
-            CreatedAt = DateTime.UtcNow,
-        });
-        db.PlayPlayers.Add(new PlayPlayerEntity
-        {
-            Id = PlayPlayerId.From(Guid.NewGuid()),
-            PlayId = PlayId.From(play2Id),
-            BgStatsPlayerUuid = playerUuid,
-            PlayerName = "Alice",
-            MappedUserId = UserId.From(userId),
-        });
-        await db.SaveChangesAsync();
-
-        var result = await UnclaimPlayerHandler.Handle(
+        var (result, claimChanged) = await UnclaimPlayerHandler.Handle(
             new UnclaimPlayer(userId, playerUuid), db);
 
         await Assert.That(result.Status).IsEqualTo(UnclaimStatus.Removed);
-        await Assert.That(result.Event).IsNotNull();
-        await Assert.That(result.Event!.BgStatsPlayerUuid).IsEqualTo(playerUuid);
-        await Assert.That(result.Event!.AffectedPlayIds).Count().IsEqualTo(2);
-        await Assert.That(result.Event!.AffectedPlayIds).Contains(playId);
-        await Assert.That(result.Event!.AffectedPlayIds).Contains(play2Id);
+        await Assert.That(claimChanged).IsNotNull();
+        await Assert.That(claimChanged!.BgStatsPlayerUuid).IsEqualTo(playerUuid);
+        await Assert.That(claimChanged.MappedUserId).IsNull();
     }
 }
