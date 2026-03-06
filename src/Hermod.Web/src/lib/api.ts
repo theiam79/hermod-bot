@@ -44,6 +44,7 @@ export interface ProfileResponse {
 	bggUsername: string | null;
 	subscribeToPlays: boolean;
 	postingEnabled: boolean;
+	distributionEnabled: boolean;
 	groups: ProfileGroupSummary[];
 }
 
@@ -53,6 +54,7 @@ export interface UpdateProfileRequest {
 	bggUsername?: string;
 	subscribeToPlays?: boolean;
 	postingEnabled?: boolean;
+	distributionEnabled?: boolean;
 }
 
 export async function fetchUser(): Promise<User | null> {

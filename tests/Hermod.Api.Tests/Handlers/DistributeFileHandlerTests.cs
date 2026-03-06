@@ -193,6 +193,99 @@ public class DistributeFileHandlerTests
     }
 
     [Test]
+    public async Task DistributionEnabled_True_EmitsMessages()
+    {
+        var (db, upload, mePlayerUuid, otherPlayerUuid, uploaderId) = await SetupUploadWithTwoPlayers();
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(uploaderId),
+            DisplayName = "Uploader",
+            DistributionEnabled = true,
+        });
+
+        var recipientId = Guid.NewGuid();
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(recipientId),
+            DisplayName = "Recipient",
+            SubscribeToPlays = true,
+        });
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = otherPlayerUuid.ToString(),
+            MappedUserId = UserId.From(recipientId),
+        });
+        await db.SaveChangesAsync();
+
+        var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
+        var result = await DistributeFileHandler.Handle(message, db);
+
+        await Assert.That(result.OfType<DistributePlayFile>()).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task DistributionEnabled_False_EmitsNothing()
+    {
+        var (db, upload, mePlayerUuid, otherPlayerUuid, uploaderId) = await SetupUploadWithTwoPlayers();
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(uploaderId),
+            DisplayName = "Uploader",
+            DistributionEnabled = false,
+        });
+
+        var recipientId = Guid.NewGuid();
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(recipientId),
+            DisplayName = "Recipient",
+            SubscribeToPlays = true,
+        });
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = otherPlayerUuid.ToString(),
+            MappedUserId = UserId.From(recipientId),
+        });
+        await db.SaveChangesAsync();
+
+        var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
+        var result = await DistributeFileHandler.Handle(message, db);
+
+        await Assert.That(result).Count().IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task NoUploaderProfile_DefaultsToDistributing()
+    {
+        var (db, upload, mePlayerUuid, otherPlayerUuid, uploaderId) = await SetupUploadWithTwoPlayers();
+
+        // No profile for uploader — should default to distributing
+        var recipientId = Guid.NewGuid();
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(recipientId),
+            DisplayName = "Recipient",
+            SubscribeToPlays = true,
+        });
+        db.PlayerMappings.Add(new PlayerMappingEntity
+        {
+            Id = PlayerMappingId.From(Guid.NewGuid()),
+            BgStatsPlayerUuid = otherPlayerUuid.ToString(),
+            MappedUserId = UserId.From(recipientId),
+        });
+        await db.SaveChangesAsync();
+
+        var message = new PlayFileUploaded(upload.Id.Value, mePlayerUuid, uploaderId);
+        var result = await DistributeFileHandler.Handle(message, db);
+
+        await Assert.That(result.OfType<DistributePlayFile>()).Count().IsEqualTo(1);
+    }
+
+    [Test]
     public async Task ExcludesMePlayer()
     {
         var (db, upload, mePlayerUuid, _, uploaderId) = await SetupUploadWithTwoPlayers();

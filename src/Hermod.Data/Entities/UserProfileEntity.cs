@@ -8,6 +8,7 @@ public class UserProfileEntity
     public string? BggUsername { get; set; }
     public bool SubscribeToPlays { get; set; } = true;
     public bool PostingEnabled { get; set; } = true;
+    public bool DistributionEnabled { get; set; } = true;
 
     public List<UserGroupEntity> UserGroups { get; set; } = [];
     public List<PlayerMappingEntity> PlayerMappings { get; set; } = [];

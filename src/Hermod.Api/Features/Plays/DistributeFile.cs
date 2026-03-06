@@ -14,6 +14,10 @@ public static class DistributeFileHandler
         var upload = await db.Uploads.FindAsync(UploadId.From(message.UploadId))
             ?? throw new InvalidOperationException($"Upload {message.UploadId} not found");
 
+        var uploaderProfile = await db.UserProfiles.FindAsync(UserId.From(message.UploadedById));
+        if (uploaderProfile is { DistributionEnabled: false })
+            return [];
+
         var result = PlayFileParser.Parse(upload.FileContent);
 
         // Collect all unique player UUIDs across all plays, excluding the uploader

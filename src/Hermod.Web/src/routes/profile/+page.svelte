@@ -10,6 +10,7 @@
 	let bggUsername = $state('');
 	let subscribeToPlays = $state(false);
 	let postingEnabled = $state(true);
+	let distributionEnabled = $state(true);
 	let saving = $state(false);
 	let successMessage = $state('');
 	let errorMessage = $state('');
@@ -25,6 +26,7 @@
 						bggUsername = p.bggUsername ?? '';
 						subscribeToPlays = p.subscribeToPlays;
 					postingEnabled = p.postingEnabled;
+					distributionEnabled = p.distributionEnabled;
 					}
 					fetching = false;
 				});
@@ -48,6 +50,7 @@
 		if (bggUsername !== (profile?.bggUsername ?? '')) data.bggUsername = bggUsername;
 		if (subscribeToPlays !== profile?.subscribeToPlays) data.subscribeToPlays = subscribeToPlays;
 		if (postingEnabled !== profile?.postingEnabled) data.postingEnabled = postingEnabled;
+		if (distributionEnabled !== profile?.distributionEnabled) data.distributionEnabled = distributionEnabled;
 
 		if (Object.keys(data).length === 0) {
 			successMessage = 'No changes to save.';
@@ -62,6 +65,7 @@
 			profile = result.profile;
 			subscribeToPlays = result.profile.subscribeToPlays;
 		postingEnabled = result.profile.postingEnabled;
+		distributionEnabled = result.profile.distributionEnabled;
 			successMessage = 'Profile saved.';
 		} else {
 			errorMessage = result.error;
@@ -126,6 +130,15 @@
 				bind:checked={postingEnabled}
 			/>
 			<label for="postingEnabled">Post plays to groups</label>
+		</div>
+
+		<div class="field checkbox-field">
+			<input
+				id="distributionEnabled"
+				type="checkbox"
+				bind:checked={distributionEnabled}
+			/>
+			<label for="distributionEnabled">Distribute play files to other players</label>
 		</div>
 
 		<div class="field checkbox-field">
