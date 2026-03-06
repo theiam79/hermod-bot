@@ -50,8 +50,7 @@ jobs:
         run: |
           aspire do push \
             --project src/Hermod.AppHost/Hermod.AppHost.csproj \
-            --non-interactive \
-            --log-level debug
+            --non-interactive
         env:
           Parameters__registry-endpoint: ghcr.io
           Parameters__registry-repository: ${{ github.repository_owner }}
