@@ -54,3 +54,4 @@ jobs:
         env:
           Parameters__registry-endpoint: ghcr.io
           Parameters__registry-repository: ${{ github.repository_owner }}
+          Parameters__registry-tag: ${{ steps.tag.outputs.tag }}
