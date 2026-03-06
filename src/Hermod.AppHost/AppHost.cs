@@ -1,114 +1,110 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-var discordToken = builder.AddParameter("discord-token", secret: true);
-var discordClientId = builder.AddParameter("discord-client-id");
-var discordClientSecret = builder.AddParameter("discord-client-secret", secret: true);
+#pragma warning disable ASPIRECOMPUTE003 // Container registry APIs are experimental
+var registryEndpoint = builder.AddParameter("registry-endpoint", "ghcr.io", publishValueAsDefault: true);
+var registryRepository = builder.AddParameter("registry-repository", "theiam79", publishValueAsDefault: true);
+var registry = builder.AddContainerRegistry("ghcr", registryEndpoint, registryRepository);
 
-var skipBot = builder.Configuration["SkipBot"] is "true" or "True";
-var useTunnel = builder.Configuration["UseTunnel"] is "true" or "True";
+var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
+    .WithContainerRegistry(registry);
 
-IResourceBuilder<IResourceWithConnectionString> hermodDb;
-IResourceBuilder<IResourceWithConnectionString> authDb;
-IResourceBuilder<IResourceWithConnectionString> botDb;
-IResourceBuilder<IResourceWithConnectionString> nats;
+var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
+    .WithContainerRegistry(registry);
 
+// Run mode: Aspire provisions containers and manages secrets from user secrets.
+// Publish mode: K8s injects connection strings and secrets as env vars at deploy time.
 if (builder.ExecutionContext.IsRunMode)
 {
+    var skipBot = builder.Configuration["SkipBot"] is "true" or "True";
+    var useTunnel = builder.Configuration["UseTunnel"] is "true" or "True";
+
     var postgres = builder.AddPostgres("postgres")
         .WithDataVolume()
         .WithPgAdmin();
-    hermodDb = postgres.AddDatabase("hermod-db");
-    authDb = postgres.AddDatabase("auth-db");
-    botDb = postgres.AddDatabase("bot-db");
+    var hermodDb = postgres.AddDatabase("hermod-db");
+    var authDb = postgres.AddDatabase("auth-db");
+    var botDb = postgres.AddDatabase("bot-db");
 
-    nats = builder.AddNats("nats");
+    var nats = builder.AddNats("nats");
+
+    var discordToken = builder.AddParameter("discord-token", secret: true);
+    var discordClientId = builder.AddParameter("discord-client-id");
+    var discordClientSecret = builder.AddParameter("discord-client-secret", secret: true);
+
+    api
+        .WithReference(hermodDb)
+        .WithReference(authDb)
+        .WithReference(nats)
+        .WithEnvironment("Discord__ClientId", discordClientId)
+        .WithEnvironment("Discord__ClientSecret", discordClientSecret)
+        .WaitFor(hermodDb)
+        .WaitFor(authDb)
+        .WaitFor(nats);
+
+    bot
+        .WithReference(botDb)
+        .WithReference(nats)
+        .WithEnvironment("Discord__Token", discordToken)
+        .WaitFor(botDb)
+        .WaitFor(nats);
+
+    var discordApiBaseUrl = builder.Configuration["Testing:DiscordApiBaseUrl"];
+    if (discordApiBaseUrl is { Length: > 0 })
+    {
+        bot.WithEnvironment("Discord__ApiBaseUrl", discordApiBaseUrl);
+        api.WithEnvironment("Testing__Enabled", "true");
+        bot.WithEnvironment("Testing__Enabled", "true");
+    }
+
+    if (skipBot)
+        bot.WithExplicitStart();
+
+    var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
+        .WithReference(api)
+        .WithEndpoint("http", ep =>
+        {
+            ep.IsProxied = false;
+            ep.Port = 5173;
+        });
+
+    var gateway = builder.AddYarp("hermod-gateway")
+        .WithHostPort(8080)
+        .WithHostHttpsPort(8443)
+        .WithConfiguration(yarp => yarp.AddRoute("{**catch-all}", frontend))
+        .WithExternalHttpEndpoints()
+        .WithContainerRegistry(registry);
+
+    if (useTunnel)
+    {
+        var tunnel = builder.AddDevTunnel("hermod-tunnel")
+            .WithReference(gateway, allowAnonymous: true);
+
+        var tunnelEndpoint = tunnel.GetEndpoint(gateway, "http");
+        bot.WithEnvironment("WebApp__BaseUrl", tunnelEndpoint);
+        api.WithEnvironment("Auth__ExternalBaseUrl", tunnelEndpoint);
+    }
+    else
+    {
+        bot.WithEnvironment("WebApp__BaseUrl", "http://localhost:8080");
+    }
 }
 else
 {
-    hermodDb = builder.AddConnectionString("hermod-db");
-    authDb = builder.AddConnectionString("auth-db");
-    botDb = builder.AddConnectionString("bot-db");
-    nats = builder.AddConnectionString("nats");
-}
+    // Publish mode: gateway routes API traffic directly and serves static frontend files
+    var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
+        .WithReference(api);
 
-var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
-    .WithReference(hermodDb)
-    .WithReference(authDb)
-    .WithReference(nats)
-    .WithEnvironment("Discord__ClientId", discordClientId)
-    .WithEnvironment("Discord__ClientSecret", discordClientSecret)
-    .WaitFor(hermodDb)
-    .WaitFor(authDb)
-    .WaitFor(nats);
-
-var discordApiBaseUrl = builder.Configuration["Testing:DiscordApiBaseUrl"];
-
-var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
-    .WithReference(botDb)
-    .WithReference(nats)
-    .WithEnvironment("Discord__Token", discordToken)
-    .WaitFor(botDb)
-    .WaitFor(nats);
-
-// Testing:DiscordApiBaseUrl is only set by the E2E test fixture → implies Testing mode.
-// Propagate Testing:Enabled flag to child resources via env var (Testing__Enabled maps
-// to Configuration["Testing:Enabled"] in the child processes).
-if (discordApiBaseUrl is { Length: > 0 })
-{
-    bot.WithEnvironment("Discord__ApiBaseUrl", discordApiBaseUrl);
-    api.WithEnvironment("Testing__Enabled", "true");
-    bot.WithEnvironment("Testing__Enabled", "true");
-}
-
-if (skipBot)
-{
-    bot.WithExplicitStart();
-}
-
-var frontend = builder.AddViteApp("hermod-web", "../Hermod.Web")
-    .WithReference(api)
-    .WithEndpoint("http", ep =>
-    {
-        ep.IsProxied = false;
-        ep.Port = builder.ExecutionContext.IsRunMode ? 5173 : null;
-    })
-    ;
-
-var gateway = builder.AddYarp("hermod-gateway")
-    .WithHostPort(8080)
-    .WithHostHttpsPort(8443)
-    .WithConfiguration(yarp =>
-    {
-        // Publish mode: YARP routes API traffic directly
-        if (builder.ExecutionContext.IsPublishMode)
+    var gateway = builder.AddYarp("hermod-gateway")
+        .WithConfiguration(yarp =>
         {
             yarp.AddRoute("api/{**catch-all}", api);
             yarp.AddRoute("auth/{**catch-all}", api);
             yarp.AddRoute("signin-discord", api);
-        }
-
-        // Run mode: everything goes to Vite (its proxy handles API routing)
-        // Publish mode: catch-all serves static files via PublishWithStaticFiles
-        if (builder.ExecutionContext.IsRunMode)
-        {
-            yarp.AddRoute("{**catch-all}", frontend);
-        }
-    })
-    .WithExternalHttpEndpoints()
-    .PublishWithStaticFiles(frontend);
-
-if (useTunnel)
-{
-    var tunnel = builder.AddDevTunnel("hermod-tunnel")
-        .WithReference(gateway, allowAnonymous: true);
-
-    var tunnelEndpoint = tunnel.GetEndpoint(gateway, "http");
-    bot.WithEnvironment("WebApp__BaseUrl", tunnelEndpoint);
-    api.WithEnvironment("Auth__ExternalBaseUrl", tunnelEndpoint);
+        })
+        .WithExternalHttpEndpoints()
+        .PublishWithStaticFiles(frontend)
+        .WithContainerRegistry(registry);
 }
-else
-{
-    bot.WithEnvironment("WebApp__BaseUrl", "http://localhost:8080");
-}
+#pragma warning restore ASPIRECOMPUTE003
 
 builder.Build().Run();
