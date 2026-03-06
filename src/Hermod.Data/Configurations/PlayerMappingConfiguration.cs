@@ -17,7 +17,7 @@ public class PlayerMappingConfiguration : IEntityTypeConfiguration<PlayerMapping
 
         builder.Property(pm => pm.BgStatsPlayerUuid).IsRequired().HasMaxLength(100);
 
-        builder.HasIndex(pm => new { pm.BgStatsPlayerUuid, pm.MappedUserId }).IsUnique();
+        builder.HasIndex(pm => pm.BgStatsPlayerUuid).IsUnique();
 
         builder.HasOne(pm => pm.MappedUser)
             .WithMany(u => u.PlayerMappings)

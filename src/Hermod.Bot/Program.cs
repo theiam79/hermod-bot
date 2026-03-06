@@ -7,6 +7,7 @@ using NetCord.Hosting.Gateway;
 using NetCord.Hosting.Services;
 using NetCord.Hosting.Services.ApplicationCommands;
 using NetCord.Hosting.Services.ComponentInteractions;
+using NetCord.Rest;
 using NetCord.Services.ApplicationCommands;
 using NetCord.Services.ComponentInteractions;
 using Wolverine;
@@ -17,19 +18,36 @@ builder.AddServiceDefaults();
 
 var natsUrl = builder.Configuration.GetConnectionString("nats")
     ?? throw new InvalidOperationException("ConnectionStrings:nats is not configured.");
+var isTesting = builder.Configuration["Testing:Enabled"] is "true";
 
 builder.AddNpgsqlDbContext<BotDbContext>("bot-db");
 
-// NetCord: reads token from Discord:Token in IConfiguration automatically
-builder.Services
-    .AddDiscordGateway(options =>
+if (!isTesting)
+{
+    // PRODUCTION: Full NetCord gateway + slash commands + interaction handlers
+    builder.Services
+        .AddDiscordGateway(options =>
+        {
+            options.Intents = GatewayIntents.Guilds;
+        })
+        .AddApplicationCommands<SlashCommandInteraction, SlashCommandContext>()
+        .AddApplicationCommands<MessageCommandInteraction, MessageCommandContext>()
+        .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
+        .AddComponentInteractions<ButtonInteraction, ButtonInteractionContext>()
+        .AddGatewayHandlers(typeof(Program).Assembly);
+}
+else
+{
+    // TESTING: Standalone RestClient pointed at WireMock (no gateway, no slash commands).
+    // WireMock listens on HTTPS so NetCord's default HTTPS behavior works directly.
+    var discordApiHost = builder.Configuration["Discord:ApiBaseUrl"]
+        ?? throw new InvalidOperationException("Discord:ApiBaseUrl is required in Testing mode.");
+    var token = new BotToken(builder.Configuration["Discord:Token"] ?? "test-token");
+    builder.Services.AddSingleton(new RestClient(token, new RestClientConfiguration
     {
-        options.Intents = GatewayIntents.Guilds;
-    })
-    .AddApplicationCommands<SlashCommandInteraction, SlashCommandContext>()
-    .AddApplicationCommands<MessageCommandInteraction, MessageCommandContext>()
-    .AddComponentInteractions<StringMenuInteraction, StringMenuInteractionContext>()
-    .AddGatewayHandlers(typeof(Program).Assembly);
+        Hostname = discordApiHost,
+    }));
+}
 
 builder.UseWolverine(opts =>
 {
@@ -54,6 +72,12 @@ builder.UseWolverine(opts =>
 
     opts.PublishMessage<LeaveGroup>()
         .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<GetUserClaims>()
+        .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<UnclaimPlayer>()
+        .ToNatsSubject("hermod.api");
 });
 
 var host = builder.Build();
@@ -65,7 +89,11 @@ using (var scope = host.Services.CreateScope())
     await botDb.Database.MigrateAsync();
 }
 
-host.AddModules(typeof(Program).Assembly);
+if (!isTesting)
+{
+    host.AddModules(typeof(Program).Assembly);
+}
+
 await host.RunAsync();
 
 public partial class Program;

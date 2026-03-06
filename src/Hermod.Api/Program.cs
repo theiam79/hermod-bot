@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using Hermod.Api.Features.Auth;
 using Hermod.Auth;
 using Hermod.Data;
 using Hermod.Messages;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
@@ -148,6 +150,27 @@ app.UseAuthorization();
 
 app.MapWolverineEndpoints(opts =>
     opts.ConfigureEndpoints(e => e.DisableAntiforgery()));
+
+// Test-only endpoint: issue a session cookie for a given UserId without Discord OAuth.
+// Always registered; guarded at request time by Testing:Enabled config flag so it
+// returns 404 in production. The config flag is injected by the AppHost via
+// WithEnvironment("Testing__Enabled", "true") when Testing:DiscordApiBaseUrl is set.
+app.MapPost("/auth/test-login", async (HttpContext ctx, IConfiguration config, Guid userId) =>
+{
+    if (config["Testing:Enabled"] is not "true")
+        return Results.NotFound();
+
+    var claims = new List<Claim>
+    {
+        new(Hermod.Api.Auth.ClaimsPrincipalExtensions.UserIdClaimType, userId.ToString()),
+        new(ClaimTypes.Name, "E2ETestUser"),
+    };
+    var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+    await ctx.SignInAsync(
+        CookieAuthenticationDefaults.AuthenticationScheme,
+        new ClaimsPrincipal(identity));
+    return Results.Ok(new { userId });
+}).AllowAnonymous();
 
 // Apply migrations
 using (var scope = app.Services.CreateScope())

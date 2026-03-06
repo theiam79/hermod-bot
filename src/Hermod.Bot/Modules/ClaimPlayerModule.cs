@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Hermod.Bot.Data;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
@@ -31,39 +30,12 @@ public class ClaimPlayerCommandModule(IServiceScopeFactory scopeFactory) : Appli
             return;
         }
 
-        if (string.IsNullOrEmpty(post.PlayersJson))
+        var (options, errorMessage) = ClaimPlayerHelper.BuildClaimableOptions(post);
+        if (options is null)
         {
-            await FollowupAsync(new() { Content = "This play has no player data. Try re-uploading.", Flags = MessageFlags.Ephemeral });
+            await FollowupAsync(new() { Content = errorMessage!, Flags = MessageFlags.Ephemeral });
             return;
         }
-
-        var players = JsonSerializer.Deserialize<List<PlayerSnapshot>>(post.PlayersJson);
-        if (players is null or { Count: 0 })
-        {
-            await FollowupAsync(new() { Content = "No players found in this play.", Flags = MessageFlags.Ephemeral });
-            return;
-        }
-
-        var claimable = players.Where(p => p.MappedUserId is null).ToList();
-        if (claimable.Count == 0)
-        {
-            await FollowupAsync(new() { Content = "All players in this play have already been linked.", Flags = MessageFlags.Ephemeral });
-            return;
-        }
-
-        var options = claimable.Take(25).Select(player =>
-        {
-            var description = player.CalculatedScore is { } score and not 0
-                ? $"Score: {score}"
-                : !string.IsNullOrEmpty(player.Score)
-                    ? $"Score: {player.Score}"
-                    : null;
-
-            return new StringMenuSelectOptionProperties(player.PlayerName, player.BgStatsPlayerUuid)
-            {
-                Description = description,
-            };
-        }).ToArray();
 
         var menu = new StringMenuProperties($"claim-player:{post.PlayId}", options)
         {
@@ -114,7 +86,7 @@ public class ClaimPlayerSelectionModule(IServiceScopeFactory scopeFactory) : Com
         var response = result.Status switch
         {
             ClaimPlayerStatus.Claimed => $"You've been linked to **{result.PlayerName}**! Future plays will recognize you automatically.",
-            ClaimPlayerStatus.AlreadyClaimed => "You've already claimed this player.",
+            ClaimPlayerStatus.AlreadyClaimed => $"This player is already claimed by **{result.ClaimantDisplayName}**.",
             ClaimPlayerStatus.IsUploader => "You uploaded this play — your player was linked automatically.",
             ClaimPlayerStatus.NotRegistered => "You need to register first. Use `/enroll` to get started.",
             ClaimPlayerStatus.PlayerNotFound => "That player wasn't found in the system.",

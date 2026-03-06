@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Hermod.Bot.Data;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
@@ -78,5 +79,106 @@ public class SharingModule(IServiceScopeFactory scopeFactory) : ApplicationComma
         await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, false));
 
         await FollowupAsync(new() { Content = "Play sharing has been disabled.", Flags = MessageFlags.Ephemeral });
+    }
+
+    [SubSlashCommand("unclaim", "Remove a player claim for a user")]
+    public async Task UnclaimAsync(
+        [SlashCommandParameter(Name = "user", Description = "The user whose claim to remove")]
+        User targetUser)
+    {
+        await RespondAsync(InteractionCallback.DeferredMessage(MessageFlags.Ephemeral));
+
+        await using var scope = scopeFactory.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
+        var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+
+        var guildId = Context.Interaction.GuildId;
+        if (guildId is null)
+        {
+            await FollowupAsync(new() { Content = "This command can only be used in a server.", Flags = MessageFlags.Ephemeral });
+            return;
+        }
+
+        var guildMapping = await db.GuildMappings
+            .FirstOrDefaultAsync(m => m.DiscordGuildId == guildId.Value && m.IsActive);
+
+        if (guildMapping is null)
+        {
+            await FollowupAsync(new() { Content = "This server hasn't been registered yet.", Flags = MessageFlags.Ephemeral });
+            return;
+        }
+
+        var userMapping = await db.DiscordUserMappings
+            .FirstOrDefaultAsync(m => m.DiscordUserId == targetUser.Id);
+
+        if (userMapping is null)
+        {
+            await FollowupAsync(new() { Content = "No claims found for this user in this server.", Flags = MessageFlags.Ephemeral });
+            return;
+        }
+
+        var result = await bus.InvokeAsync<GetUserClaimsResult>(
+            new GetUserClaims(userMapping.HermodUserId),
+            timeout: TimeSpan.FromSeconds(10));
+
+        if (result.Claims.Count == 0)
+        {
+            await FollowupAsync(new() { Content = "No claims found for this user in this server.", Flags = MessageFlags.Ephemeral });
+            return;
+        }
+
+        // Scope claims to this guild: only show claims for players that appear in plays posted to this guild
+        var groupPlayerUuids = await GetGroupPlayerUuidsAsync(db, guildMapping.GroupId);
+        var relevantClaims = result.Claims
+            .Where(c => groupPlayerUuids.Contains(c.BgStatsPlayerUuid))
+            .ToList();
+
+        if (relevantClaims.Count == 0)
+        {
+            await FollowupAsync(new() { Content = "No claims found for this user in this server.", Flags = MessageFlags.Ephemeral });
+            return;
+        }
+
+        var options = relevantClaims.Take(25).Select(claim =>
+            new StringMenuSelectOptionProperties(claim.PlayerName, claim.BgStatsPlayerUuid)
+            {
+                Description = claim.PlayCount == 1
+                    ? "1 play"
+                    : $"{claim.PlayCount} plays",
+            }).ToArray();
+
+        var menu = new StringMenuProperties($"admin-unclaim:{userMapping.HermodUserId}", options)
+        {
+            Placeholder = "Select a player to unclaim",
+            MinValues = 1,
+            MaxValues = 1,
+        };
+
+        await FollowupAsync(new()
+        {
+            Content = $"Which claim would you like to remove from <@{targetUser.Id}>?",
+            Components = [menu],
+            Flags = MessageFlags.Ephemeral,
+        });
+    }
+
+    private static async Task<HashSet<string>> GetGroupPlayerUuidsAsync(BotDbContext db, Guid groupId)
+    {
+        var playersJsonList = await db.PlayPosts
+            .Where(p => p.GroupId == groupId)
+            .Select(p => p.PlayersJson)
+            .ToListAsync();
+
+        var uuids = new HashSet<string>();
+        foreach (var json in playersJsonList)
+        {
+            if (string.IsNullOrEmpty(json)) continue;
+            var players = JsonSerializer.Deserialize<List<PlayerSnapshot>>(json);
+            if (players is null) continue;
+            foreach (var player in players)
+                uuids.Add(player.BgStatsPlayerUuid);
+        }
+
+        return uuids;
     }
 }

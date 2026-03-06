@@ -10,13 +10,13 @@ public static class ClaimPlayerHandler
 {
     // IExternalUserResolver resolved via IServiceProvider so Wolverine sees only HermodContext
     // for transaction management (AuthDbContext is a transitive dependency of ExternalUserResolver).
-    public static async Task<ClaimPlayerResult> Handle(
+    public static async Task<(ClaimPlayerResult, ClaimChanged?)> Handle(
         ClaimPlayer message, HermodContext db, IServiceProvider services)
     {
         var userResolver = services.GetRequiredService<IExternalUserResolver>();
         var externalUser = await userResolver.ResolveAsync(message.Provider, message.ProviderKey);
         if (externalUser is null)
-            return new ClaimPlayerResult(ClaimPlayerStatus.NotRegistered, null, null);
+            return (new ClaimPlayerResult(ClaimPlayerStatus.NotRegistered, null, null), null);
 
         var userId = UserId.From(externalUser.UserId);
 
@@ -32,17 +32,20 @@ public static class ClaimPlayerHandler
 
         var play = await db.Plays.FindAsync(PlayId.From(message.PlayId));
         if (play?.UploadedById == userId)
-            return new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null, externalUser.UserId);
+            return (new ClaimPlayerResult(ClaimPlayerStatus.IsUploader, null, externalUser.UserId), null);
 
         var hasPlayer = await db.PlayPlayers
             .AnyAsync(pp => pp.BgStatsPlayerUuid == message.BgStatsPlayerUuid);
         if (!hasPlayer)
-            return new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, externalUser.UserId);
+            return (new ClaimPlayerResult(ClaimPlayerStatus.PlayerNotFound, null, externalUser.UserId), null);
 
-        var alreadyMapped = await db.PlayerMappings
-            .AnyAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid && pm.MappedUserId == userId);
-        if (alreadyMapped)
-            return new ClaimPlayerResult(ClaimPlayerStatus.AlreadyClaimed, null, externalUser.UserId);
+        var existingMapping = await db.PlayerMappings
+            .Include(pm => pm.MappedUser)
+            .FirstOrDefaultAsync(pm => pm.BgStatsPlayerUuid == message.BgStatsPlayerUuid);
+        if (existingMapping is not null)
+            return (new ClaimPlayerResult(
+                ClaimPlayerStatus.AlreadyClaimed, null, externalUser.UserId,
+                existingMapping.MappedUser.DisplayName), null);
 
         db.PlayerMappings.Add(new PlayerMappingEntity
         {
@@ -74,6 +77,8 @@ public static class ClaimPlayerHandler
             .Select(pp => pp.PlayerName)
             .FirstAsync();
 
-        return new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, externalUser.UserId);
+        return (
+            new ClaimPlayerResult(ClaimPlayerStatus.Claimed, playerName, externalUser.UserId),
+            new ClaimChanged(message.BgStatsPlayerUuid, externalUser.UserId));
     }
 }
