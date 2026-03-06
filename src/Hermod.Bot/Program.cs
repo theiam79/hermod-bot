@@ -51,6 +51,9 @@ builder.UseWolverine(opts =>
 
     opts.PublishMessage<ClaimPlayer>()
         .ToNatsSubject("hermod.api");
+
+    opts.PublishMessage<LeaveGroup>()
+        .ToNatsSubject("hermod.api");
 });
 
 var host = builder.Build();

@@ -68,6 +68,14 @@ export async function joinGroup(groupId: string): Promise<{ status: 'joined' | '
 	return { status: 'error' };
 }
 
+export async function leaveGroup(groupId: string): Promise<{ status: 'left' | 'not_found' | 'unauthorized' | 'error' }> {
+	const res = await fetch(`/api/groups/${groupId}/membership`, { method: 'DELETE' });
+	if (res.status === 204) return { status: 'left' };
+	if (res.status === 404) return { status: 'not_found' };
+	if (res.status === 401) return { status: 'unauthorized' };
+	return { status: 'error' };
+}
+
 export async function uploadPlayFile(file: File): Promise<{ ok: true; result: UploadResult } | { ok: false; error: string }> {
 	const form = new FormData();
 	form.append('file', file);
