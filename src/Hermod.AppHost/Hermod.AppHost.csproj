@@ -1,11 +1,11 @@
-<Project Sdk="Aspire.AppHost.Sdk/13.1.1">
+<Project Sdk="Aspire.AppHost.Sdk/13.1.2">
 
   <ItemGroup>
-    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.1.1" />
-    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.1" />
-    <PackageReference Include="Aspire.Hosting.Nats" Version="13.1.1" />
-    <PackageReference Include="Aspire.Hosting.DevTunnels" Version="13.1.1" />
-    <PackageReference Include="Aspire.Hosting.Yarp" Version="13.1.1" />
+    <PackageReference Include="Aspire.Hosting.JavaScript" Version="13.1.2" />
+    <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.1.2" />
+    <PackageReference Include="Aspire.Hosting.Nats" Version="13.1.2" />
+    <PackageReference Include="Aspire.Hosting.DevTunnels" Version="13.1.2" />
+    <PackageReference Include="Aspire.Hosting.Yarp" Version="13.1.2" />
   </ItemGroup>
 
   <ItemGroup>
