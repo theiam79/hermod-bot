@@ -110,15 +110,17 @@ export async function updateProfile(data: UpdateProfileRequest): Promise<{ ok: t
 		body: JSON.stringify(data)
 	});
 	if (!res.ok) {
-		if (res.status === 400) {
-			const body = await res.json().catch(() => null);
-			const errors = body?.errors;
-			if (errors) {
-				const messages = Object.values(errors).flat() as string[];
-				return { ok: false, error: messages.join('. ') };
-			}
-		}
 		const text = await res.text();
+		if (res.status === 400 && text) {
+			try {
+				const body = JSON.parse(text);
+				const errors = body?.errors;
+				if (errors) {
+					const messages = Object.values(errors).flat() as string[];
+					return { ok: false, error: messages.join('. ') };
+				}
+			} catch { /* not JSON, fall through */ }
+		}
 		return { ok: false, error: text || `Update failed (${res.status})` };
 	}
 	return { ok: true, profile: await res.json() };

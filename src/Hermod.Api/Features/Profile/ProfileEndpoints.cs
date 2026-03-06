@@ -4,6 +4,7 @@ using Hermod.Data;
 using Hermod.Data.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Mvc;
 using Wolverine.Http;
 
 namespace Hermod.Api.Features.Profile;
@@ -51,7 +52,7 @@ public static class ProfileEndpoints
 
     [Authorize]
     [WolverinePut("/api/profile")]
-    public static async Task<IResult> Put(UpdateProfileRequest request, ClaimsPrincipal user, HermodContext db)
+    public static async Task<IResult> Put(UpdateProfileRequest request, ClaimsPrincipal user, [FromServices] HermodContext db)
     {
         var userId = UserId.From(user.GetUserId()!.Value);
 
@@ -71,7 +72,15 @@ public static class ProfileEndpoints
         }
 
         if (request.BggUsername is not null)
+        {
+            if (request.BggUsername.Length > 200)
+                return Results.ValidationProblem(new Dictionary<string, string[]>
+                {
+                    ["BggUsername"] = ["BGG username must be 200 characters or fewer."]
+                });
+
             profile.BggUsername = request.BggUsername;
+        }
 
         if (request.BggId is not null)
             profile.BggId = request.BggId;
@@ -79,12 +88,19 @@ public static class ProfileEndpoints
         if (request.SubscribeToPlays is not null)
             profile.SubscribeToPlays = request.SubscribeToPlays.Value;
 
+        // Re-fetch with includes so response contains groups
+        await db.SaveChangesAsync();
+        var updated = await db.UserProfiles
+            .Include(p => p.UserGroups)
+                .ThenInclude(ug => ug.Group)
+            .FirstAsync(p => p.Id == userId);
+
         return Results.Ok(new ProfileResponse(
-            profile.Id.Value,
-            profile.DisplayName,
-            profile.BggId,
-            profile.BggUsername,
-            profile.SubscribeToPlays,
-            []));
+            updated.Id.Value,
+            updated.DisplayName,
+            updated.BggId,
+            updated.BggUsername,
+            updated.SubscribeToPlays,
+            updated.UserGroups.Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name)).ToList()));
     }
 }

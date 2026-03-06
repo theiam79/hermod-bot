@@ -1,13 +1,14 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { user, loading } from '$lib/stores/auth';
-	import { fetchProfile, updateProfile, login, type ProfileResponse } from '$lib/api';
+	import { fetchProfile, updateProfile, login, type ProfileResponse, type UpdateProfileRequest } from '$lib/api';
 
 	let profile = $state<ProfileResponse | null>(null);
 	let fetching = $state(true);
 
 	let displayName = $state('');
 	let bggUsername = $state('');
+	let subscribeToPlays = $state(false);
 	let saving = $state(false);
 	let successMessage = $state('');
 	let errorMessage = $state('');
@@ -21,6 +22,7 @@
 					if (p) {
 						displayName = p.displayName;
 						bggUsername = p.bggUsername ?? '';
+						subscribeToPlays = p.subscribeToPlays;
 					}
 					fetching = false;
 				});
@@ -39,9 +41,10 @@
 		}
 
 		saving = true;
-		const data: Record<string, string> = {};
+		const data: UpdateProfileRequest = {};
 		if (displayName !== profile?.displayName) data.displayName = displayName;
 		if (bggUsername !== (profile?.bggUsername ?? '')) data.bggUsername = bggUsername;
+		if (subscribeToPlays !== profile?.subscribeToPlays) data.subscribeToPlays = subscribeToPlays;
 
 		if (Object.keys(data).length === 0) {
 			successMessage = 'No changes to save.';
@@ -54,6 +57,7 @@
 
 		if (result.ok) {
 			profile = result.profile;
+			subscribeToPlays = result.profile.subscribeToPlays;
 			successMessage = 'Profile saved.';
 		} else {
 			errorMessage = result.error;
@@ -100,7 +104,24 @@
 				id="bggUsername"
 				type="text"
 				bind:value={bggUsername}
+				maxlength="200"
 			/>
+		</div>
+
+		{#if profile.bggId != null}
+			<div class="field">
+				<label>BGG ID</label>
+				<span class="readonly-value">{profile.bggId}</span>
+			</div>
+		{/if}
+
+		<div class="field checkbox-field">
+			<input
+				id="subscribeToPlays"
+				type="checkbox"
+				bind:checked={subscribeToPlays}
+			/>
+			<label for="subscribeToPlays">Subscribe to play notifications</label>
 		</div>
 
 		<button class="btn-primary" type="submit" disabled={saving}>
@@ -156,6 +177,25 @@
 	input:focus {
 		outline: none;
 		border-color: var(--color-primary);
+	}
+
+	.readonly-value {
+		color: var(--color-text-muted);
+	}
+
+	.checkbox-field {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.checkbox-field input[type='checkbox'] {
+		width: auto;
+	}
+
+	.checkbox-field label {
+		display: inline;
+		margin-bottom: 0;
 	}
 
 	.hint {

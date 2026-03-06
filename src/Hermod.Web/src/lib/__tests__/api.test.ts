@@ -137,10 +137,11 @@ describe('updateProfile', () => {
 	});
 
 	it('returns validation error on 400', async () => {
+		const body = { errors: { DisplayName: ['Display name must be 200 characters or fewer.'] } };
 		mockFetch.mockResolvedValue({
 			ok: false,
 			status: 400,
-			json: () => Promise.resolve({ errors: { DisplayName: ['Display name must be 200 characters or fewer.'] } })
+			text: () => Promise.resolve(JSON.stringify(body))
 		});
 		const result = await updateProfile({ displayName: 'x'.repeat(201) });
 		expect(result.ok).toBe(false);
