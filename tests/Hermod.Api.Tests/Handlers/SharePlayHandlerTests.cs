@@ -213,6 +213,76 @@ public class SharePlayHandlerTests
     }
 
     [Test]
+    public async Task PostingEnabled_True_EmitsMessages()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var playId = PlayId.From(Guid.NewGuid());
+        var groupId = GroupId.From(Guid.NewGuid());
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(userId),
+            DisplayName = "Test User",
+            PostingEnabled = true,
+        });
+        db.Groups.Add(new GroupEntity { Id = groupId, Name = "Sharing Group", AllowSharing = true });
+        db.UserGroups.Add(new UserGroupEntity { UserId = UserId.From(userId), GroupId = groupId });
+        db.Plays.Add(CreatePlay(playId, UserId.From(userId)));
+        await db.SaveChangesAsync();
+
+        var message = new PlayPersisted(playId.Value, userId, PlayChangeType.Created);
+        var result = await SharePlayHandler.Handle(message, db);
+
+        await Assert.That(result).Count().IsEqualTo(1);
+    }
+
+    [Test]
+    public async Task PostingEnabled_False_EmitsNothing()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var playId = PlayId.From(Guid.NewGuid());
+        var groupId = GroupId.From(Guid.NewGuid());
+
+        db.UserProfiles.Add(new UserProfileEntity
+        {
+            Id = UserId.From(userId),
+            DisplayName = "Test User",
+            PostingEnabled = false,
+        });
+        db.Groups.Add(new GroupEntity { Id = groupId, Name = "Sharing Group", AllowSharing = true });
+        db.UserGroups.Add(new UserGroupEntity { UserId = UserId.From(userId), GroupId = groupId });
+        db.Plays.Add(CreatePlay(playId, UserId.From(userId)));
+        await db.SaveChangesAsync();
+
+        var message = new PlayPersisted(playId.Value, userId, PlayChangeType.Created);
+        var result = await SharePlayHandler.Handle(message, db);
+
+        await Assert.That(result).Count().IsEqualTo(0);
+    }
+
+    [Test]
+    public async Task NoProfile_DefaultsToSharing()
+    {
+        await using var db = CreateInMemoryDb();
+        var userId = Guid.NewGuid();
+        var playId = PlayId.From(Guid.NewGuid());
+        var groupId = GroupId.From(Guid.NewGuid());
+
+        // No UserProfileEntity seeded — profile will be null
+        db.Groups.Add(new GroupEntity { Id = groupId, Name = "Sharing Group", AllowSharing = true });
+        db.UserGroups.Add(new UserGroupEntity { UserId = UserId.From(userId), GroupId = groupId });
+        db.Plays.Add(CreatePlay(playId, UserId.From(userId)));
+        await db.SaveChangesAsync();
+
+        var message = new PlayPersisted(playId.Value, userId, PlayChangeType.Created);
+        var result = await SharePlayHandler.Handle(message, db);
+
+        await Assert.That(result).Count().IsEqualTo(1);
+    }
+
+    [Test]
     public async Task Snapshot_IncludesBgStatsPlayerUuid()
     {
         await using var db = CreateInMemoryDb();

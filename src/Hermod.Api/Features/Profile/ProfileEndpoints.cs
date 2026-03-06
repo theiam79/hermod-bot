@@ -17,13 +17,15 @@ public record ProfileResponse(
     int? BggId,
     string? BggUsername,
     bool SubscribeToPlays,
+    bool PostingEnabled,
     List<GroupSummary> Groups);
 
 public record UpdateProfileRequest(
     string? DisplayName,
     int? BggId,
     string? BggUsername,
-    bool? SubscribeToPlays);
+    bool? SubscribeToPlays,
+    bool? PostingEnabled);
 
 public static class ProfileEndpoints
 {
@@ -47,6 +49,7 @@ public static class ProfileEndpoints
             profile.BggId,
             profile.BggUsername,
             profile.SubscribeToPlays,
+            profile.PostingEnabled,
             profile.UserGroups.Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name)).ToList()));
     }
 
@@ -88,6 +91,9 @@ public static class ProfileEndpoints
         if (request.SubscribeToPlays is not null)
             profile.SubscribeToPlays = request.SubscribeToPlays.Value;
 
+        if (request.PostingEnabled is not null)
+            profile.PostingEnabled = request.PostingEnabled.Value;
+
         // Re-fetch with includes so response contains groups
         await db.SaveChangesAsync();
         var updated = await db.UserProfiles
@@ -101,6 +107,7 @@ public static class ProfileEndpoints
             updated.BggId,
             updated.BggUsername,
             updated.SubscribeToPlays,
+            updated.PostingEnabled,
             updated.UserGroups.Select(ug => new GroupSummary(ug.GroupId.Value, ug.Group.Name)).ToList()));
     }
 }

@@ -19,6 +19,10 @@ public static class SharePlayHandler
         if (groupIds.Count == 0)
             return [];
 
+        var profile = await db.UserProfiles.FindAsync(uploadedById);
+        if (profile is { PostingEnabled: false })
+            return [];
+
         var play = await db.Plays
             .Include(p => p.Players)
             .FirstOrDefaultAsync(p => p.Id == PlayId.From(message.PlayId));

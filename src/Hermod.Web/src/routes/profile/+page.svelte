@@ -9,6 +9,7 @@
 	let displayName = $state('');
 	let bggUsername = $state('');
 	let subscribeToPlays = $state(false);
+	let postingEnabled = $state(true);
 	let saving = $state(false);
 	let successMessage = $state('');
 	let errorMessage = $state('');
@@ -23,6 +24,7 @@
 						displayName = p.displayName;
 						bggUsername = p.bggUsername ?? '';
 						subscribeToPlays = p.subscribeToPlays;
+					postingEnabled = p.postingEnabled;
 					}
 					fetching = false;
 				});
@@ -45,6 +47,7 @@
 		if (displayName !== profile?.displayName) data.displayName = displayName;
 		if (bggUsername !== (profile?.bggUsername ?? '')) data.bggUsername = bggUsername;
 		if (subscribeToPlays !== profile?.subscribeToPlays) data.subscribeToPlays = subscribeToPlays;
+		if (postingEnabled !== profile?.postingEnabled) data.postingEnabled = postingEnabled;
 
 		if (Object.keys(data).length === 0) {
 			successMessage = 'No changes to save.';
@@ -58,6 +61,7 @@
 		if (result.ok) {
 			profile = result.profile;
 			subscribeToPlays = result.profile.subscribeToPlays;
+		postingEnabled = result.profile.postingEnabled;
 			successMessage = 'Profile saved.';
 		} else {
 			errorMessage = result.error;
@@ -114,6 +118,15 @@
 				<span class="readonly-value">{profile.bggId}</span>
 			</div>
 		{/if}
+
+		<div class="field checkbox-field">
+			<input
+				id="postingEnabled"
+				type="checkbox"
+				bind:checked={postingEnabled}
+			/>
+			<label for="postingEnabled">Post plays to groups</label>
+		</div>
 
 		<div class="field checkbox-field">
 			<input
