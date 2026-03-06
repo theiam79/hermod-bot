@@ -1,15 +1,19 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 #pragma warning disable ASPIRECOMPUTE003 // Container registry APIs are experimental
+#pragma warning disable ASPIREPIPELINES003 // Pipeline APIs are experimental
 var registryEndpoint = builder.AddParameter("registry-endpoint", "ghcr.io", publishValueAsDefault: true);
 var registryRepository = builder.AddParameter("registry-repository", "theiam79", publishValueAsDefault: true);
+var registryTag = builder.Configuration["Parameters:registry-tag"] ?? "latest";
 var registry = builder.AddContainerRegistry("ghcr", registryEndpoint, registryRepository);
 
 var api = builder.AddProject<Projects.Hermod_Api>("hermod-api")
-    .WithContainerRegistry(registry);
+    .WithContainerRegistry(registry)
+    .WithRemoteImageTag(registryTag);
 
 var bot = builder.AddProject<Projects.Hermod_Bot>("hermod-bot")
-    .WithContainerRegistry(registry);
+    .WithContainerRegistry(registry)
+    .WithRemoteImageTag(registryTag);
 
 // Run mode: Aspire provisions containers and manages secrets from user secrets.
 // Publish mode: K8s injects connection strings and secrets as env vars at deploy time.
@@ -72,7 +76,8 @@ if (builder.ExecutionContext.IsRunMode)
         .WithHostHttpsPort(8443)
         .WithConfiguration(yarp => yarp.AddRoute("{**catch-all}", frontend))
         .WithExternalHttpEndpoints()
-        .WithContainerRegistry(registry);
+        .WithContainerRegistry(registry)
+        .WithRemoteImageTag(registryTag);
 
     if (useTunnel)
     {
@@ -103,8 +108,10 @@ else
         })
         .WithExternalHttpEndpoints()
         .PublishWithStaticFiles(frontend)
-        .WithContainerRegistry(registry);
+        .WithContainerRegistry(registry)
+        .WithRemoteImageTag(registryTag);
 }
+#pragma warning restore ASPIREPIPELINES003
 #pragma warning restore ASPIRECOMPUTE003
 
 builder.Build().Run();

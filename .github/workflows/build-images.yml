@@ -43,7 +43,7 @@ jobs:
           if [[ "${{ github.ref_type }}" == "tag" ]]; then
             echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
           else
-            echo "tag=latest" >> "$GITHUB_OUTPUT"
+            echo "tag=vNext" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Build and push images
@@ -54,3 +54,4 @@ jobs:
         env:
           Parameters__registry-endpoint: ghcr.io
           Parameters__registry-repository: ${{ github.repository_owner }}
+          Parameters__registry-tag: ${{ steps.tag.outputs.tag }}
