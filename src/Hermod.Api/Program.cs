@@ -148,7 +148,20 @@ if (app.Environment.IsDevelopment())
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Service worker and manifest must never be cached by CDNs/proxies —
+        // stale versions reference build-hashed asset URLs that no longer exist
+        // after a new deployment, causing cache.addAll() to fail silently.
+        var path = ctx.File.Name;
+        if (path is "service-worker.js" or "manifest.json")
+        {
+            ctx.Context.Response.Headers[Microsoft.Net.Http.Headers.HeaderNames.CacheControl] = "no-cache";
+        }
+    }
+});
 
 app.MapWolverineEndpoints(opts =>
     opts.ConfigureEndpoints(e => e.DisableAntiforgery()));
