@@ -8,7 +8,7 @@ import { build, files, version } from '$service-worker';
 const APP_CACHE = `app-${version}`;
 const SHARE_CACHE = 'share-target';
 
-const PRECACHE_ASSETS = [...build, ...files];
+const PRECACHE_ASSETS = [...build, ...files, '/index.html'];
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -16,6 +16,10 @@ self.addEventListener('install', (event) => {
 			.open(APP_CACHE)
 			.then((cache) => cache.addAll(PRECACHE_ASSETS))
 			.then(() => self.skipWaiting())
+			.catch((err) => {
+				console.error('SW install failed:', err);
+				throw err;
+			})
 	);
 });
 
@@ -57,7 +61,7 @@ self.addEventListener('fetch', (event) => {
 	if (event.request.mode === 'navigate') {
 		event.respondWith(
 			fetch(event.request).catch(() =>
-				caches.match('/200.html').then((cached) => cached || caches.match('/'))
+				caches.match('/index.html').then((cached) => cached || caches.match('/'))
 			).then((response) => response || new Response('Offline', { status: 503 }))
 		);
 		return;
