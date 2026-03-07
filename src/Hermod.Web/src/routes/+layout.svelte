@@ -3,6 +3,7 @@
 	import { page } from '$app/stores';
 	import { user, loading, checkAuth } from '$lib/stores/auth';
 	import { login, logout } from '$lib/api';
+	import InstallPrompt from '$lib/InstallPrompt.svelte';
 	import '../app.css';
 
 	let { children } = $props();
@@ -46,6 +47,7 @@
 </nav>
 
 <main class="container">
+	<InstallPrompt />
 	{@render children()}
 </main>
 
