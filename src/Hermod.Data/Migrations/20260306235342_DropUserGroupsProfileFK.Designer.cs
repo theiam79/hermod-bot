@@ -3,6 +3,7 @@ using System;
 using Hermod.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Hermod.Data.Migrations
 {
     [DbContext(typeof(HermodContext))]
-    partial class HermodContextModelSnapshot : ModelSnapshot
+    [Migration("20260306235342_DropUserGroupsProfileFK")]
+    partial class DropUserGroupsProfileFK
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

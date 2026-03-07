@@ -220,7 +220,7 @@ public class EnrollInGroupHandlerTests
     }
 
     [Test]
-    public async Task Handle_RegisteredUser_CreatesProfileIfMissing()
+    public async Task Handle_RegisteredUser_EnrollsWithoutProfile()
     {
         var db = CreateHermodDb();
         var authDb = CreateAuthDb();
@@ -252,9 +252,7 @@ public class EnrollInGroupHandlerTests
         await db.SaveChangesAsync();
 
         await Assert.That(result.Status).IsEqualTo(EnrollmentStatus.Enrolled);
-
-        var profile = await db.UserProfiles.SingleAsync(p => p.Id == UserId.From(userId));
-        await Assert.That(profile.DisplayName).IsEqualTo("NewUser");
+        await Assert.That(db.UserProfiles.Count()).IsEqualTo(0);
     }
 
     [Test]

@@ -10,6 +10,5 @@ public class UserProfileEntity
     public bool PostingEnabled { get; set; } = true;
     public bool DistributionEnabled { get; set; } = true;
 
-    public List<UserGroupEntity> UserGroups { get; set; } = [];
     public List<PlayerMappingEntity> PlayerMappings { get; set; } = [];
 }

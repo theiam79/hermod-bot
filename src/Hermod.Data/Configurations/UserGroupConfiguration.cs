@@ -19,11 +19,6 @@ public class UserGroupConfiguration : IEntityTypeConfiguration<UserGroupEntity>
             .HasConversion<string>()
             .HasMaxLength(50);
 
-        builder.HasOne(ug => ug.User)
-            .WithMany(u => u.UserGroups)
-            .HasForeignKey(ug => ug.UserId)
-            .OnDelete(DeleteBehavior.Cascade);
-
         builder.HasOne(ug => ug.Group)
             .WithMany(g => g.UserGroups)
             .HasForeignKey(ug => ug.GroupId)
