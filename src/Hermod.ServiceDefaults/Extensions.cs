@@ -76,7 +76,7 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
-                tracing.SetSampler(new SelectiveSampler(wolverineRatio: 0.05))
+                tracing.SetSampler(new SelectiveSampler())
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("Wolverine")
                     .AddSource("NATS.Net")
