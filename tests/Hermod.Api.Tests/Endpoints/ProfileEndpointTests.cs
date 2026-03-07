@@ -70,13 +70,18 @@ public class ProfileEndpointTests
     }
 
     [Test]
-    public async Task GetProfile_NoProfile_Returns404()
+    public async Task GetProfile_NoProfile_CreatesAndReturnsProfile()
     {
         var client = Api.CreateAuthenticatedClient(Guid.NewGuid());
 
         var response = await client.GetAsync("/api/profile");
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ProfileResponse>();
+        await Assert.That(body).IsNotNull();
+        await Assert.That(body!.DisplayName).IsEqualTo("TestUser");
+        await Assert.That(body.Groups.Count).IsEqualTo(0);
     }
 
     [Test]
@@ -186,14 +191,18 @@ public class ProfileEndpointTests
     }
 
     [Test]
-    public async Task PutProfile_NoProfile_Returns404()
+    public async Task PutProfile_NoProfile_CreatesAndUpdatesProfile()
     {
         var client = Api.CreateAuthenticatedClient(Guid.NewGuid());
 
         var response = await client.PutAsJsonAsync("/api/profile",
-            new { DisplayName = "DoesNotExist" });
+            new { DisplayName = "NewlyCreated" });
 
-        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.NotFound);
+        await Assert.That(response.StatusCode).IsEqualTo(HttpStatusCode.OK);
+
+        var body = await response.Content.ReadFromJsonAsync<ProfileResponse>();
+        await Assert.That(body).IsNotNull();
+        await Assert.That(body!.DisplayName).IsEqualTo("NewlyCreated");
     }
 
     [Test]

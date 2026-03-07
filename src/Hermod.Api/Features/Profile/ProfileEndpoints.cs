@@ -39,7 +39,16 @@ public static class ProfileEndpoints
 
         var profile = await db.UserProfiles.FirstOrDefaultAsync(p => p.Id == userId);
         if (profile is null)
-            return Results.NotFound();
+        {
+            var displayName = user.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
+            profile = new UserProfileEntity
+            {
+                Id = userId,
+                DisplayName = displayName,
+            };
+            db.UserProfiles.Add(profile);
+            await db.SaveChangesAsync();
+        }
 
         var groups = await db.UserGroups
             .Where(ug => ug.UserId == userId)
@@ -65,7 +74,15 @@ public static class ProfileEndpoints
 
         var profile = await db.UserProfiles.FindAsync(userId);
         if (profile is null)
-            return Results.NotFound();
+        {
+            var displayName = user.FindFirstValue(ClaimTypes.Name) ?? "Unknown";
+            profile = new UserProfileEntity
+            {
+                Id = userId,
+                DisplayName = displayName,
+            };
+            db.UserProfiles.Add(profile);
+        }
 
         if (request.DisplayName is not null)
         {
