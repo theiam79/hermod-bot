@@ -76,7 +76,7 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
-                tracing.SetSampler(new SelectiveSampler())
+                tracing.AddProcessor(new WolverineTraceFilterProcessor())
                     .AddSource(builder.Environment.ApplicationName)
                     .AddSource("Wolverine")
                     .AddSource("NATS.Net")
