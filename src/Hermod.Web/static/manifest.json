@@ -35,6 +35,20 @@
 			"type": "image/svg+xml"
 		}
 	],
+	"screenshots": [
+		{
+			"src": "/screenshots/mobile.png",
+			"sizes": "390x844",
+			"type": "image/png",
+			"form_factor": "narrow"
+		},
+		{
+			"src": "/screenshots/desktop.png",
+			"sizes": "1280x800",
+			"type": "image/png",
+			"form_factor": "wide"
+		}
+	],
 	"share_target": {
 		"action": "/upload",
 		"method": "POST",
