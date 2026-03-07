@@ -17,6 +17,10 @@ declare global {
 	interface WindowEventMap {
 		beforeinstallprompt: BeforeInstallPromptEvent;
 	}
+
+	interface Window {
+		deferredInstallPrompt?: BeforeInstallPromptEvent;
+	}
 }
 
 export {};

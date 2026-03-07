@@ -12,6 +12,11 @@
 			return;
 		}
 
+		// Check for event captured early in app.html before Svelte mounted
+		if (window.deferredInstallPrompt) {
+			deferredPrompt = window.deferredInstallPrompt;
+		}
+
 		const handler = (e: Event) => {
 			e.preventDefault();
 			deferredPrompt = e as BeforeInstallPromptEvent;

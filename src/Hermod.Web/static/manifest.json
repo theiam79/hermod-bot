@@ -2,6 +2,7 @@
 	"name": "Hermod",
 	"short_name": "Hermod",
 	"description": "Share your board game plays from BGStats",
+	"id": "/",
 	"start_url": "/",
 	"display": "standalone",
 	"background_color": "#1d2323",
