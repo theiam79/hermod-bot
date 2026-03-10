@@ -1,4 +1,5 @@
 using Hermod.Bot.Data;
+using Hermod.Bot.Services;
 using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using NetCord;
@@ -21,6 +22,7 @@ var natsUrl = builder.Configuration.GetConnectionString("nats")
 var isTesting = builder.Configuration["Testing:Enabled"] is "true";
 
 builder.AddNpgsqlDbContext<BotDbContext>("bot-db");
+builder.Services.AddScoped<GuildRegistrationService>();
 
 if (!isTesting)
 {

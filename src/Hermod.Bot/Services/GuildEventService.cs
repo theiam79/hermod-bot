@@ -1,10 +1,8 @@
 using Hermod.Bot.Data;
-using Hermod.Messages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using NetCord.Gateway;
 using NetCord.Hosting.Gateway;
-using Wolverine;
 
 namespace Hermod.Bot.Services;
 
@@ -21,7 +19,7 @@ public class GuildCreateHandler(
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
-            var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+            var registrationService = scope.ServiceProvider.GetRequiredService<GuildRegistrationService>();
 
             var existing = await db.GuildMappings
                 .FirstOrDefaultAsync(m => m.DiscordGuildId == guild.Id);
@@ -30,59 +28,18 @@ public class GuildCreateHandler(
             {
                 if (!existing.IsActive)
                 {
-                    existing.IsActive = true;
-                    existing.DeactivatedAt = null;
-                    await db.SaveChangesAsync();
-
-                    if (existing.PostChannelId is not null)
-                    {
-                        await bus.PublishAsync(new UpdateGroupSharing(existing.GroupId, true));
-                    }
-
-                    logger.LogInformation("Reactivated guild mapping for {GuildName} ({GuildId})", guild.Name, guild.Id);
+                    await registrationService.ReactivateAsync(existing);
                 }
 
                 return;
             }
 
-            await RegisterNewGuildAsync(guild.Id, guild.Name, db, bus);
+            await registrationService.RegisterGuildAsync(guild.Id, guild.Name);
         }
         catch (Exception ex)
         {
             logger.LogError(ex, "Error handling GuildCreate for {GuildName} ({GuildId})", guild.Name, guild.Id);
         }
-    }
-
-    private async Task RegisterNewGuildAsync(ulong discordGuildId, string guildName, BotDbContext db, IMessageBus bus)
-    {
-        logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
-        var registered = await bus.InvokeAsync<CommunityRegistered>(
-            new RegisterCommunity(Providers.Discord, discordGuildId.ToString(), guildName),
-            timeout: TimeSpan.FromSeconds(10));
-
-        var existing = await db.GuildMappings
-            .FirstOrDefaultAsync(m => m.DiscordGuildId == discordGuildId);
-
-        if (existing is not null)
-        {
-            existing.GroupId = registered.GroupId;
-            existing.IsActive = true;
-            existing.DeactivatedAt = null;
-        }
-        else
-        {
-            db.GuildMappings.Add(new GuildMappingEntity
-            {
-                Id = Guid.NewGuid(),
-                DiscordGuildId = discordGuildId,
-                GroupId = registered.GroupId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            });
-        }
-
-        await db.SaveChangesAsync();
-        logger.LogInformation("Registered guild {GuildName} ({GuildId}) → Group {GroupId}", guildName, discordGuildId, registered.GroupId);
     }
 }
 
@@ -96,7 +53,7 @@ public class GuildDeleteHandler(
         {
             await using var scope = scopeFactory.CreateAsyncScope();
             var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
-            var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+            var registrationService = scope.ServiceProvider.GetRequiredService<GuildRegistrationService>();
 
             var mapping = await db.GuildMappings
                 .FirstOrDefaultAsync(m => m.DiscordGuildId == args.GuildId);
@@ -107,12 +64,7 @@ public class GuildDeleteHandler(
                 return;
             }
 
-            mapping.IsActive = false;
-            mapping.DeactivatedAt = DateTime.UtcNow;
-            await db.SaveChangesAsync();
-
-            await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, false));
-            logger.LogInformation("Deactivated guild mapping for guild ({GuildId})", args.GuildId);
+            await registrationService.DeactivateAsync(mapping);
         }
         catch (Exception ex)
         {
@@ -143,7 +95,7 @@ public class ReadyHandler(
     {
         await using var scope = scopeFactory.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
-        var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+        var registrationService = scope.ServiceProvider.GetRequiredService<GuildRegistrationService>();
 
         var connectedGuildIds = client.Cache.Guilds.Keys.ToHashSet();
         logger.LogInformation("Guild sync: {ConnectedCount} connected guild(s), checking mappings...", connectedGuildIds.Count);
@@ -151,71 +103,20 @@ public class ReadyHandler(
         var mappedGuildIds = allMappings.ToDictionary(m => m.DiscordGuildId);
         logger.LogInformation("Guild sync: {MappedCount} existing mapping(s)", allMappings.Count);
 
-        // Register guilds the bot is in but has no mapping for
+        // Register guilds the bot is in but has no mapping for, or reactivate inactive ones
         foreach (var (guildId, guild) in client.Cache.Guilds)
         {
             if (mappedGuildIds.TryGetValue(guildId, out var mapping))
             {
                 if (!mapping.IsActive)
                 {
-                    mapping.IsActive = true;
-                    mapping.DeactivatedAt = null;
-
-                    if (mapping.PostChannelId is not null)
-                    {
-                        await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, true));
-                    }
-
-                    logger.LogInformation("Reactivated guild mapping during sync for {GuildName} ({GuildId})", guild.Name, guildId);
+                    await registrationService.ReactivateAsync(mapping);
                 }
             }
             else
             {
-                await RegisterNewGuildAsync(guildId, guild.Name, db, bus);
+                await registrationService.RegisterGuildAsync(guildId, guild.Name);
             }
         }
-
-        // Deactivate mappings for guilds the bot is no longer in
-        foreach (var mapping in allMappings.Where(m => m.IsActive && !connectedGuildIds.Contains(m.DiscordGuildId)))
-        {
-            mapping.IsActive = false;
-            mapping.DeactivatedAt = DateTime.UtcNow;
-            await bus.PublishAsync(new UpdateGroupSharing(mapping.GroupId, false));
-            logger.LogInformation("Deactivated orphaned guild mapping for DiscordGuildId {GuildId}", mapping.DiscordGuildId);
-        }
-
-        await db.SaveChangesAsync();
-    }
-
-    private async Task RegisterNewGuildAsync(ulong discordGuildId, string guildName, BotDbContext db, IMessageBus bus)
-    {
-        logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
-        var registered = await bus.InvokeAsync<CommunityRegistered>(
-            new RegisterCommunity(Providers.Discord, discordGuildId.ToString(), guildName),
-            timeout: TimeSpan.FromSeconds(10));
-
-        var existing = await db.GuildMappings
-            .FirstOrDefaultAsync(m => m.DiscordGuildId == discordGuildId);
-
-        if (existing is not null)
-        {
-            existing.GroupId = registered.GroupId;
-            existing.IsActive = true;
-            existing.DeactivatedAt = null;
-        }
-        else
-        {
-            db.GuildMappings.Add(new GuildMappingEntity
-            {
-                Id = Guid.NewGuid(),
-                DiscordGuildId = discordGuildId,
-                GroupId = registered.GroupId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-            });
-        }
-
-        await db.SaveChangesAsync();
-        logger.LogInformation("Registered guild {GuildName} ({GuildId}) → Group {GroupId}", guildName, discordGuildId, registered.GroupId);
     }
 }
