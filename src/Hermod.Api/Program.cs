@@ -3,12 +3,12 @@ using Hermod.Auth;
 using Hermod.Data;
 using Hermod.Messages;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
-using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.HttpOverrides;
 using Wolverine.Http;
 using Wolverine.Nats;
 using Wolverine.Postgresql;
@@ -126,23 +126,21 @@ var forwardedHeadersOptions = new ForwardedHeadersOptions
     ForwardLimit = app.Configuration.GetValue<int?>("ForwardedHeaders:ForwardLimit"),
 };
 
+forwardedHeadersOptions.KnownIPNetworks.Clear();
+forwardedHeadersOptions.KnownProxies.Clear();
+
 var knownNetworks = app.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>();
 if (knownNetworks is { Length: > 0 })
 {
-    forwardedHeadersOptions.KnownIPNetworks.Clear();
-    forwardedHeadersOptions.KnownProxies.Clear();
     foreach (var cidr in knownNetworks)
     {
         var parts = cidr.Split('/');
+        if (parts.Length != 2)
+            throw new InvalidOperationException($"Invalid CIDR notation '{cidr}' in ForwardedHeaders:KnownNetworks. Expected format: '10.42.0.0/16'.");
+
         forwardedHeadersOptions.KnownIPNetworks.Add(
             new System.Net.IPNetwork(System.Net.IPAddress.Parse(parts[0]), int.Parse(parts[1])));
     }
-}
-else
-{
-    // Development: trust all sources (no CIDR restriction)
-    forwardedHeadersOptions.KnownIPNetworks.Clear();
-    forwardedHeadersOptions.KnownProxies.Clear();
 }
 
 app.UseForwardedHeaders(forwardedHeadersOptions);
