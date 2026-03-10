@@ -103,6 +103,7 @@ public class SharingModule(IServiceScopeFactory scopeFactory) : ApplicationComma
 
         if (mapping is null)
         {
+            // Slash commands execute in-guild so the cache hit is near-certain; fallback is just defensive
             var guildName = Context.Client.Cache.Guilds.GetValueOrDefault(guildId.Value)?.Name ?? "Unknown Server";
             await registrationService.RegisterGuildAsync(guildId.Value, guildName);
             await FollowupAsync(new() { Content = "Server has been registered and activated.", Flags = MessageFlags.Ephemeral });
