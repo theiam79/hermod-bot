@@ -97,8 +97,7 @@ public class ReadyHandler(
         var db = scope.ServiceProvider.GetRequiredService<BotDbContext>();
         var registrationService = scope.ServiceProvider.GetRequiredService<GuildRegistrationService>();
 
-        var connectedGuildIds = client.Cache.Guilds.Keys.ToHashSet();
-        logger.LogInformation("Guild sync: {ConnectedCount} connected guild(s), checking mappings...", connectedGuildIds.Count);
+        logger.LogInformation("Guild sync: {ConnectedCount} connected guild(s), checking mappings...", client.Cache.Guilds.Count);
         var allMappings = await db.GuildMappings.ToListAsync();
         var mappedGuildIds = allMappings.ToDictionary(m => m.DiscordGuildId);
         logger.LogInformation("Guild sync: {MappedCount} existing mapping(s)", allMappings.Count);

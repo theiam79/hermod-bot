@@ -11,7 +11,7 @@ public class GuildRegistrationService(
     IMessageBus bus,
     ILogger<GuildRegistrationService> logger)
 {
-    public async Task<GuildMappingEntity> RegisterGuildAsync(ulong discordGuildId, string guildName)
+    public async Task RegisterGuildAsync(ulong discordGuildId, string guildName)
     {
         logger.LogInformation("Registering guild {GuildName} ({GuildId}) via NATS...", guildName, discordGuildId);
 
@@ -30,21 +30,18 @@ public class GuildRegistrationService(
         }
         else
         {
-            existing = new GuildMappingEntity
+            db.GuildMappings.Add(new GuildMappingEntity
             {
                 Id = Guid.NewGuid(),
                 DiscordGuildId = discordGuildId,
                 GroupId = registered.GroupId,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-            };
-            db.GuildMappings.Add(existing);
+            });
         }
 
         await db.SaveChangesAsync();
         logger.LogInformation("Registered guild {GuildName} ({GuildId}) → Group {GroupId}", guildName, discordGuildId, registered.GroupId);
-
-        return existing;
     }
 
     public async Task ReactivateAsync(GuildMappingEntity mapping)
