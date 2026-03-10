@@ -9,6 +9,7 @@ using Microsoft.EntityFrameworkCore;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.ErrorHandling;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Wolverine.Http;
 using Wolverine.Nats;
@@ -41,6 +42,10 @@ builder.EnrichNpgsqlDbContext<HermodContext>(settings =>
 
 builder.AddNpgsqlDbContext<AuthDbContext>("auth-db");
 
+builder.Services.AddDataProtection()
+    .SetApplicationName("hermod-api")
+    .PersistKeysToDbContext<AuthDbContext>();
+
 builder.Services.AddScoped<ExternalLoginService>();
 builder.Services.AddScoped<IExternalUserResolver, ExternalUserResolver>();
 
@@ -71,6 +76,8 @@ builder.Services.AddAuthentication(options =>
         ?? throw new InvalidOperationException("Discord:ClientSecret is not configured.");
     options.CallbackPath = "/signin-discord";
     options.SaveTokens = false;
+    options.CorrelationCookie.SameSite = SameSiteMode.Lax;
+    options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
     options.Events.OnCreatingTicket = DiscordOAuthEvents.OnCreatingTicket;
 });
 
@@ -115,11 +122,31 @@ var app = builder.Build();
 
 var forwardedHeadersOptions = new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto | ForwardedHeaders.XForwardedHost,
-    ForwardLimit = null, // Allow multiple proxy hops (e.g. tunnel → YARP → Vite → API)
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor
+        | ForwardedHeaders.XForwardedProto
+        | ForwardedHeaders.XForwardedHost,
+    ForwardLimit = app.Configuration.GetValue<int?>("ForwardedHeaders:ForwardLimit"),
 };
-forwardedHeadersOptions.KnownIPNetworks.Clear();
-forwardedHeadersOptions.KnownProxies.Clear();
+
+var knownNetworks = app.Configuration.GetSection("ForwardedHeaders:KnownNetworks").Get<string[]>();
+if (knownNetworks is { Length: > 0 })
+{
+    forwardedHeadersOptions.KnownIPNetworks.Clear();
+    forwardedHeadersOptions.KnownProxies.Clear();
+    foreach (var cidr in knownNetworks)
+    {
+        var parts = cidr.Split('/');
+        forwardedHeadersOptions.KnownIPNetworks.Add(
+            new System.Net.IPNetwork(System.Net.IPAddress.Parse(parts[0]), int.Parse(parts[1])));
+    }
+}
+else
+{
+    // Development: trust all sources (no CIDR restriction)
+    forwardedHeadersOptions.KnownIPNetworks.Clear();
+    forwardedHeadersOptions.KnownProxies.Clear();
+}
+
 app.UseForwardedHeaders(forwardedHeadersOptions);
 
 // When behind a dev tunnel, the YARP container overwrites X-Forwarded-Host
